@@ -233,7 +233,7 @@ class OxfordPetsDataset(Dataset):
         return image, annotation
 
 
-def pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=100, model_name='pretrained_model'):
+def pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, model_name='pretrained_model'):
     """
     Use contrastive learning to pre-train the model.
     :param model: The model to be trained.
@@ -384,7 +384,7 @@ scheduler = StepLR(optimizer, step_size=10, gamma=0.5)
 print('\n##### Begin pre-training #####')
 
 # Perform pre-training
-model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=1)
+model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50)
 
 with open('pretraining_loss.pkl', 'wb') as f:
     pickle.dump(train_loss, f)
@@ -442,7 +442,7 @@ benchmark_model = SimCLR(out_features=128).to(device)
 benchmark_model.head = SegmentationHead(in_features=512, output_dim=3)
 
 # Update the model's forward method
-model.flatten = False
+benchmark_model.flatten = False
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 print('\n##### Begin benchmark training #####\n')
