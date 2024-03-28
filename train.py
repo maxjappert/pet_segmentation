@@ -1,5 +1,6 @@
 import os
 import pickle
+import random
 import sys
 
 import numpy as np
@@ -19,73 +20,106 @@ from PIL import Image
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-import requests, zipfile, io
 
-# Example of adding a segmentation head to the SimCLR model (highly simplified)
+np.set_printoptions(precision=3)
+
+
+def read_data(filename):
+    """
+    :param filename: List of data points as data split.
+    :return: List of data points as string.
+    """
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+    return [line.strip().split()[0] for line in lines]
+
+
+def split_data(data, split_ratio=0.8, seed=42):
+    """
+    Splits data in two.
+    :param data: List of string data points.
+    :param split_ratio: Ratio of split.
+    :param seed: Seed for random split.
+    :return: Two lists, each a random split of the original data.
+    """
+    random.seed(seed)
+    random.shuffle(data)  # Randomly shuffle data
+    split_point = int(len(data) * split_ratio)
+    return data[:split_point], data[split_point:]
+
+
 class SegmentationHead(nn.Module):
+    """
+    This segmentation head is attached to the model after pre-training, replacing the pretraining head.
+    It consists of convolutional layers and up-sampling layers in order to get the output pixel map to match the input dimension.
+    """
     def __init__(self, in_features, output_dim):
         super(SegmentationHead, self).__init__()
-        # Initial convolution
         self.conv1 = nn.Conv2d(in_features, 512, kernel_size=3, padding=1)
-
-        # Upsampling layer
         self.upsample1 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-
-        # Further processing and final upsample to match input size
         self.conv2 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
         self.upsample2 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
         self.upsample3 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)
+        self.conv4 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
         self.upsample4 = nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2)
+        self.conv5 = nn.Conv2d(16, 16, kernel_size=3, padding=1)
         self.upsample5 = nn.ConvTranspose2d(16, output_dim, kernel_size=2, stride=2)
-
-# TODO: annotations seem not correct, must be integers
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = self.upsample1(x)
         x = F.relu(self.conv2(x))
-        x = self.upsample2(x)  # Output size [N, num_classes, H, W]
-        x = self.upsample3(x)  # Output size [N, num_classes, H, W]
-        x = self.upsample4(x)  # Output size [N, num_classes, H, W]
-        x = self.upsample5(x)  # Output size [N, num_classes, H, W]
+        x = self.upsample2(x)
+        x = F.relu(self.conv3(x))
+        x = self.upsample3(x)
+        x = F.relu(self.conv4(x))
+        x = self.upsample4(x)
+        x = F.relu(self.conv5(x))
+        x = self.upsample5(x)
         return x
 
 
-# Example of adding a segmentation head to the SimCLR model (highly simplified)
 class PretrainingHead(nn.Module):
+    """
+    This head is used for pretraining, later to be replaced by the segmentation head.
+    """
     def __init__(self, in_features, output_dim):
         super(PretrainingHead, self).__init__()
         self.fc = nn.Linear(in_features, 512)
 
     def forward(self, x):
         x = F.relu(self.fc(x))
-        x = self.fc(x)  # Output size [num_classes, H, W]
+        x = self.fc(x)
         return x
 
-# Define the SimCLR model
 class SimCLR(nn.Module):
+    """
+    Simple Contrastive Learning model Consists of a ResNet18 which has different heads attached for pre-training and
+    segmentation.
+    Paper: https://arxiv.org/abs/2002.05709
+    """
     def __init__(self, feature_dim=512, out_features=512):
         super(SimCLR, self).__init__()
         self.backbone = models.resnet18(pretrained=False)
         self.backbone = nn.Sequential(*list(self.backbone.children())[:-1])
-
-        # Output channels from the backbone's last conv layer (512 for ResNet18/34; 2048 for ResNet50/101/152)
-        in_features = 512
 
         self.head = PretrainingHead(feature_dim, out_features)
 
         self.flatten = True
 
     def forward(self, x):
-        x = self.backbone(x)  # Pass input through the backbone
+        x = self.backbone(x)
         if self.flatten:
-            x = x.view(x.size(0), -1)  # Flatten the output for the pretraining head
-        x = self.head(x)  # Pass through the pretraining head
+            x = x.view(x.size(0), -1)
+        x = self.head(x)
         return x
 
 
 class NTXentLoss(torch.nn.Module):
+    """
+    Normalized Temperature-scaled Cross Entropy Loss for pre-training.
+    """
     def __init__(self, temperature, device):
         super(NTXentLoss, self).__init__()
         self.temperature = temperature
@@ -118,17 +152,26 @@ class NTXentLoss(torch.nn.Module):
 
 
 def unpickle(file):
+    """
+    For the data sets.
+    :param file: Pickle file.
+    :return: Dictionary with unpickled data.
+    """
     with open(file, 'rb') as fo:
         dict = pickle.load(fo)
     return dict
 
 
 class ContrastiveLearningDataset(Dataset):
-    def __init__(self, root_dir, transform1=None, transform2=None):
+    """
+    ImageNet dataset for the pre-training. Returns two versions of each image, each transformed differently.
+    """
+    def __init__(self, root_dir, image_dim=64, transform1=None, transform2=None):
         """
-        Args:
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Transform to be applied on a sample.
+        :param root_dir: Data directory.
+        :param image_dim: Height/width of the images. We're using ImageNet, which always has square images.
+        :param transform1: Transform for the image 1.
+        :param transform2: Transform for the image 2.
         """
         self.root_dir = root_dir
         self.transform1 = transform1
@@ -138,14 +181,9 @@ class ContrastiveLearningDataset(Dataset):
         for file in os.listdir(root_dir):
             if file.__contains__('batch'):
                 dictionary = unpickle(os.path.join(root_dir, file))
-                #self.images += list(dictionary['data'])
-                #batch = dictionary['data']
-                #batch.reshape((batch.shape[0], 3, 8, 8))
                 for image in dictionary['data']:
-                    reshaped = np.array(image).reshape((3, 8, 8))
+                    reshaped = np.array(image).reshape((3, image_dim, image_dim))
                     self.images.append(Image.fromarray(reshaped.transpose((1, 2, 0))).convert('RGB'))
-                # TODO: Remove break
-                break
 
     def __len__(self):
         return len(self.images)
@@ -162,12 +200,19 @@ class ContrastiveLearningDataset(Dataset):
 
 
 class OxfordPetsDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
+    """
+    Dataset for the Oxford Pets data.
+    """
+    def __init__(self, root_dir, data, transform=None):
+        """
+        :param root_dir: Data dir
+        :param data: List of data names. Can be extracted from the data/oxford/annotations/*.txt files.
+        :param transform: Transform for the image.
+        """
         self.image_dir = os.path.join(root_dir, 'images')
         self.annotation_dir = os.path.join(root_dir, 'annotations/trimaps')
         self.transform = transform
-        self.images = os.listdir(self.image_dir)
-        self.images = [image for image in self.images if '.jpg' in image]
+        self.images = [datum+'.jpg' for datum in data]
 
     def __len__(self):
         return len(self.images)
@@ -189,51 +234,78 @@ class OxfordPetsDataset(Dataset):
         return image, annotation
 
 
-def pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=10, model_name='pretrained_model'):
-    model.train()  # Set the model to training mode
+def pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=100, model_name='pretrained_model'):
+    """
+    Use contrastive learning to pre-train the model.
+    :param model: The model to be trained.
+    :param train_loader: For the training data.
+    :param optimizer: ADAM is probably the best choice.
+    :param scheduler: Learning rate scheduler.
+    :param criterion: Loss function.
+    :param epochs: Number of epochs.
+    :param model_name: Name of the output file without extension.
+    :return: The pre-trained model.
+    """
+    model.train()
 
-    # Loop over the dataset multiple times
+    train_loss_per_batch = []
+
     for epoch in range(epochs):
         epoch_loss = 0.0
         num_batches = 0
         for i, (image1, image2) in enumerate(train_loader):
-            # Get a batch of images and their labels (labels are not used here)
+
             image1 = image1.to(device)
             image2 = image2.to(device)
 
-            # Zero the parameter gradients
             optimizer.zero_grad()
 
-            # Forward pass
             z_i, z_j = model(image1), model(image2)
             loss = criterion(z_i, z_j)  # Compute the loss
 
-            # Backward pass + optimize
             loss.backward()
             optimizer.step()
 
             # Print statistics
             epoch_loss += loss.item()
+            train_loss_per_batch.append(loss.item())
             num_batches += 1
-            if i % 100 == 99:    # Print every 100 mini-batches
+            if i % 100 == 99:
                 print(f'Epoch {epoch + 1}, Batch {i + 1}, Loss: {np.round(epoch_loss / num_batches, 3)}')
                 epoch_loss = 0.0
                 num_batches = 0
-        # Step the scheduler
+
         scheduler.step()
         print(f'Epoch {epoch + 1} finished')
 
     torch.save(model.state_dict(), f'{model_name}.pth')
-    return model
+    return model, train_loss_per_batch
 
 
-def finetune(model, dataloader, criterion, optimizer, num_epochs=10, model_name='finished_model'):
+def finetune(model, train_dataloader, val_dataloader, criterion, optimizer, num_epochs=100, model_name='finished_model'):
+    """
+    To finetune the model after pre-training.
+    :param model: The model to be fine-tuned.
+    :param train_dataloader: For the training data.
+    :param val_dataloader: For the validation data.
+    :param criterion: Loss function.
+    :param optimizer: Optimizer.
+    :param num_epochs: Number of epochs.
+    :param model_name: For output file, without extension.
+    :return:
+    """
     model = model.to(device)
+    train_loss_per_epoch = []
+    val_loss_per_epoch = []
+    train_classification_accuracy_per_epoch = []
+    val_classification_accuracy_per_epoch = []
+
     for epoch in range(num_epochs):
         model.train()
-        running_loss = 0.0
-
-        for images, labels in dataloader:
+        train_loss = 0.0
+        train_correct = 0
+        train_total = 0
+        for images, labels in train_dataloader:
             optimizer.zero_grad()
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
@@ -241,42 +313,66 @@ def finetune(model, dataloader, criterion, optimizer, num_epochs=10, model_name=
             loss.backward()
             optimizer.step()
 
-            running_loss += loss.item()
+            train_loss += loss.item()
 
-        epoch_loss = running_loss / len(dataloader)
-        print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss:.4f}')
+            _, predicted = torch.max(outputs.data, 1)
+            train_total += labels.size(0)*labels.size(1)*labels.size(2)
+            train_correct += (predicted == labels).sum().item()
+
+        # Validation phase
+        model.eval()
+        val_loss = 0.0
+        val_correct = 0
+        val_total = 0
+        with torch.no_grad():
+            for images, labels in val_dataloader:
+                images, labels = images.to(device), labels.to(device)
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+
+                _, predicted = torch.max(outputs.data, 1)
+                val_total += labels.size(0)*labels.size(1)*labels.size(2)
+                val_correct += (predicted == labels).sum().item()
+
+        train_epoch_loss = train_loss / len(train_dataloader)
+        val_epoch_loss = val_loss / len(val_dataloader)
+        print(f'Epoch {epoch + 1}/{num_epochs}:')
+        print(f'Train loss: {np.round(train_epoch_loss, 3)}')
+        print(f'Val loss: {np.round(val_epoch_loss, 3)}')
+        print(f'Train classification accuracy: {np.round((train_correct/train_total)*100, 3)}%')
+        print(f'Validation classification accuracy: {np.round((val_correct/val_total)*100, 3)}%')
+        train_loss_per_epoch.append(train_epoch_loss)
+        val_loss_per_epoch.append(val_epoch_loss)
+        train_classification_accuracy_per_epoch.append(train_correct/train_total)
+        val_classification_accuracy_per_epoch.append(val_correct/val_total)
 
     print('Training complete')
 
     torch.save(model.state_dict(), f'{model_name}.pth')
-    return model
+    return model, train_loss_per_epoch, val_loss_per_epoch, train_classification_accuracy_per_epoch, val_classification_accuracy_per_epoch
 
 
-# TODO: Add other augmentation
-# Data Augmentation
-# Define your two sets of transformations
-transform1 = transforms.Compose([
-    transforms.RandomResizedCrop(size=256, scale=(0.5, 1.0)),
+# Data Augmentation for
+transform_contrastive_1 = transforms.Compose([
+    transforms.RandomResizedCrop(size=64, scale=(0.5, 1.0)),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
-transform2 = transforms.Compose([
-    transforms.RandomResizedCrop(size=256),
+transform_contrastive_2 = transforms.Compose([
+    transforms.RandomResizedCrop(size=64),
     transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),
     transforms.RandomVerticalFlip(),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
-batch_size = 128
+batch_size = 2048
 
-# TODO: Replace with ImageNet and filter out animal images
-# Load the dataset (example with CIFAR10 for simplicity)
-#datasets.CIFAR10(root='./data', train=True, download=True)
-train_dataset = ContrastiveLearningDataset(root_dir='./data/imagenet8', transform1=transform1, transform2=transform2)
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=16)
+#train_dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
+#train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=16)
 
 # Initialize the model and loss function
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -286,30 +382,74 @@ criterion = NTXentLoss(temperature=0.5, device=device)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 scheduler = StepLR(optimizer, step_size=10, gamma=0.5)
 
-# Assuming the model, optimizer, scheduler, and NTXentLoss ('criterion') are defined
-# and 'device' is set to 'cuda' if available
-#model = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=1)
+# Perform pre-training
+#model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=1)
 
-# Example usage
-transform = transforms.Compose([
+#with open('pretraining_loss.pkl', 'wb') as f:
+#    pickle.dump(train_loss, f)
+
+segmentation_transform = transforms.Compose([
     transforms.Resize((256, 256)),  # Resize images to 256x256
     transforms.ToTensor(),  # Convert the PIL Image to a tensor
 ])
 
+# Load the pre-trained model
 model.load_state_dict(torch.load('pretrained_model.pth', map_location=torch.device('cuda')))
 
-# Assuming model is your instance of SimCLR
 model.backbone = nn.Sequential(*list(models.resnet18(pretrained=False).children())[:-2])  # Reinitialize or ensure backbone is correct
 model.head = SegmentationHead(in_features=512, output_dim=3)  # For binary segmentation, adjust output_dim as needed
 
 # Update the model's forward method
 model.flatten = False
 
-oxford_dataset = OxfordPetsDataset(root_dir='data/oxford', transform=transform)
-oxford_dataloader = DataLoader(oxford_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
+trainval_data = read_data('data/oxford/annotations/trainval.txt')
+train_data, val_data = split_data(trainval_data, split_ratio=0.8)
+
+batch_size = 256
+
+oxford_train_dataset = OxfordPetsDataset('data/oxford', train_data, transform=segmentation_transform)
+oxford_val_dataset = OxfordPetsDataset('data/oxford', val_data, transform=segmentation_transform)
+
+oxford_train_dataloader = DataLoader(oxford_train_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
+oxford_val_dataloader = DataLoader(oxford_val_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
 
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 cross_entropy_loss = nn.CrossEntropyLoss()
 
-model = finetune(model, oxford_dataloader, cross_entropy_loss, optimizer, num_epochs=10)
+model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=100)
+
+with open('finetuning_train_loss.pkl', 'wb') as f:
+    pickle.dump(train_loss, f)
+
+with open('finetuning_val_loss.pkl', 'wb') as f:
+    pickle.dump(val_loss, f)
+
+with open('finetuning_train_accuracy.pkl', 'wb') as f:
+    pickle.dump(train_accuracy, f)
+
+with open('finetuning_val_accuracy.pkl', 'wb') as f:
+    pickle.dump(val_accuracy, f)
+
+# Now for the benchmark, whereby we don't pre-train and only finetune
+
+benchmark_model = SimCLR(out_features=128).to(device)
+model.backbone = nn.Sequential(*list(models.resnet18(pretrained=False).children())[:-2])
+model.head = SegmentationHead(in_features=512, output_dim=3)
+
+# Update the model's forward method
+model.flatten = False
+
+model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=100)
+
+with open('benchmark_train_loss.pkl', 'wb') as f:
+    pickle.dump(train_loss, f)
+
+with open('benchmark_val_loss.pkl', 'wb') as f:
+    pickle.dump(val_loss, f)
+
+with open('benchmark_train_accuracy.pkl', 'wb') as f:
+    pickle.dump(train_accuracy, f)
+
+with open('benchmark_val_accuracy.pkl', 'wb') as f:
+    pickle.dump(val_accuracy, f)
