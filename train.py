@@ -50,21 +50,21 @@ def split_data(data, split_ratio=0.8, seed=42):
 
 class SegmentationHead(nn.Module):
     """
-    This segmentation head is attached to the model after pre-training, replacing the pretraining head.
+    This segmentation head is attached to the model after pre-training, replacing the pre-training head.
     It consists of convolutional layers and up-sampling layers in order to get the output pixel map to match the input dimension.
     """
     def __init__(self, in_features, output_dim):
         super(SegmentationHead, self).__init__()
-        self.conv1 = nn.Conv2d(in_features, 512, kernel_size=3, padding=1)
-        self.upsample1 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.conv1 = nn.Conv2d(in_features, 256, kernel_size=3, padding=1)
+        self.upsample1 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.conv2 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-        self.upsample2 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
-        self.upsample3 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)
-        self.conv4 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.upsample4 = nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2)
-        self.conv5 = nn.Conv2d(16, 16, kernel_size=3, padding=1)
-        self.upsample5 = nn.ConvTranspose2d(16, output_dim, kernel_size=2, stride=2)
+        self.upsample2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.conv3 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
+        self.upsample3 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.conv4 = nn.Conv2d(64, 32, kernel_size=3, padding=1)
+        self.upsample4 = nn.Upsample(size=(256, 256), mode='bilinear', align_corners=True)
+        self.conv5 = nn.Conv2d(32, output_dim, kernel_size=3, padding=1)
+
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -76,7 +76,7 @@ class SegmentationHead(nn.Module):
         x = F.relu(self.conv4(x))
         x = self.upsample4(x)
         x = F.relu(self.conv5(x))
-        x = self.upsample5(x)
+
         return x
 
 
@@ -86,16 +86,15 @@ class PretrainingHead(nn.Module):
     """
     def __init__(self, in_features, output_dim):
         super(PretrainingHead, self).__init__()
-        self.fc = nn.Linear(in_features, 512)
+        self.fc = nn.Linear(in_features, output_dim)
 
     def forward(self, x):
         x = F.relu(self.fc(x))
-        x = self.fc(x)
         return x
 
 class SimCLR(nn.Module):
     """
-    Simple Contrastive Learning model Consists of a ResNet18 which has different heads attached for pre-training and
+    Simple Contrastive Learning model Consists of a ResNet34 which has different heads attached for pre-training and
     segmentation.
     Paper: https://arxiv.org/abs/2002.05709
     """
@@ -282,7 +281,7 @@ def pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=100, m
     return model, train_loss_per_batch
 
 
-def finetune(model, train_dataloader, val_dataloader, criterion, optimizer, num_epochs=100, model_name='finished_model'):
+def finetune(model, train_dataloader, val_dataloader, criterion, optimizer, num_epochs=50, model_name='finished_model'):
     """
     To finetune the model after pre-training.
     :param model: The model to be fine-tuned.
@@ -385,7 +384,7 @@ scheduler = StepLR(optimizer, step_size=10, gamma=0.5)
 print('\n##### Begin pre-training #####')
 
 # Perform pre-training
-model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=100)
+model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=1)
 
 with open('pretraining_loss.pkl', 'wb') as f:
     pickle.dump(train_loss, f)
@@ -396,10 +395,11 @@ segmentation_transform = transforms.Compose([
 ])
 
 # Load the pre-trained model
-model.load_state_dict(torch.load('pretrained_model.pth', map_location=torch.device('cuda')))
+#model.load_state_dict(torch.load('pretrained_model.pth', map_location=torch.device('cuda')))
 
-model.backbone = nn.Sequential(*list(models.resnet18(pretrained=False).children())[:-2])  # Reinitialize or ensure backbone is correct
-model.head = SegmentationHead(in_features=512, output_dim=3)  # For binary segmentation, adjust output_dim as needed
+# replace the head
+#model.backbone = nn.Sequential(*list(models.resnet34(pretrained=False).children())[:-2])
+model.head = SegmentationHead(in_features=512, output_dim=3)
 
 # Update the model's forward method
 model.flatten = False
@@ -421,7 +421,7 @@ cross_entropy_loss = nn.CrossEntropyLoss()
 
 print('\n##### Begin fine-tuning #####\n')
 
-model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=100)
+model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50)
 
 with open('finetuning_train_loss.pkl', 'wb') as f:
     pickle.dump(train_loss, f)
@@ -438,15 +438,16 @@ with open('finetuning_val_accuracy.pkl', 'wb') as f:
 # Now for the benchmark, whereby we don't pre-train and only finetune
 
 benchmark_model = SimCLR(out_features=128).to(device)
-model.backbone = nn.Sequential(*list(models.resnet18(pretrained=False).children())[:-2])
-model.head = SegmentationHead(in_features=512, output_dim=3)
+#benchmark_model.backbone = nn.Sequential(*list(models.resnet34(pretrained=False).children())[:-1])
+benchmark_model.head = SegmentationHead(in_features=512, output_dim=3)
 
 # Update the model's forward method
 model.flatten = False
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 print('\n##### Begin benchmark training #####\n')
 
-model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=100, model_name='benchmark')
+benchmark_model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(benchmark_model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, model_name='benchmark')
 
 with open('benchmark_train_loss.pkl', 'wb') as f:
     pickle.dump(train_loss, f)
