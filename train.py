@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader, Dataset
 
 import torch
 import torch.nn.functional as F
+from torchvision.transforms import functional as TF, InterpolationMode
 from PIL import Image
 
 import torch.optim as optim
@@ -159,6 +160,7 @@ class ContrastiveLearningDataset(Dataset):
 
         return image1, image2
 
+
 class OxfordPetsDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.image_dir = os.path.join(root_dir, 'images')
@@ -175,15 +177,14 @@ class OxfordPetsDataset(Dataset):
         img_path = os.path.join(self.image_dir, img_name)
         annotation_path = os.path.join(self.annotation_dir, img_name.replace(".jpg", ".png"))
         image = Image.open(img_path).convert("RGB")
-        annotation = Image.open(annotation_path)
+        annotation = Image.open(annotation_path).convert("L")
 
-        if self.transform is not None:
+        if self.transform:
             image = self.transform(image)
             normaliser = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             image = normaliser(image)
-            annotation = self.transform(annotation)
-            #print(annotation.max())
-            #print(annotation.min())
+            annotation = (self.transform(annotation)*255)-1
+            annotation = torch.squeeze(annotation, 0).long()
 
         return image, annotation
 
@@ -299,7 +300,7 @@ model.load_state_dict(torch.load('pretrained_model.pth', map_location=torch.devi
 
 # Assuming model is your instance of SimCLR
 model.backbone = nn.Sequential(*list(models.resnet18(pretrained=False).children())[:-2])  # Reinitialize or ensure backbone is correct
-model.head = SegmentationHead(in_features=512, output_dim=1)  # For binary segmentation, adjust output_dim as needed
+model.head = SegmentationHead(in_features=512, output_dim=3)  # For binary segmentation, adjust output_dim as needed
 
 # Update the model's forward method
 model.flatten = False
