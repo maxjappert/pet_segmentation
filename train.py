@@ -101,7 +101,7 @@ class SimCLR(nn.Module):
     """
     def __init__(self, feature_dim=512, out_features=512):
         super(SimCLR, self).__init__()
-        self.backbone = models.resnet18(pretrained=False)
+        self.backbone = models.resnet34(pretrained=False)
         self.backbone = nn.Sequential(*list(self.backbone.children())[:-1])
 
         self.head = PretrainingHead(feature_dim, out_features)
@@ -371,8 +371,8 @@ transform_contrastive_2 = transforms.Compose([
 
 batch_size = 2048
 
-#train_dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
-#train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=16)
+train_dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=16)
 
 # Initialize the model and loss function
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -382,11 +382,13 @@ criterion = NTXentLoss(temperature=0.5, device=device)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 scheduler = StepLR(optimizer, step_size=10, gamma=0.5)
 
-# Perform pre-training
-#model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=1)
+print('\n##### Begin pre-training #####')
 
-#with open('pretraining_loss.pkl', 'wb') as f:
-#    pickle.dump(train_loss, f)
+# Perform pre-training
+model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=100)
+
+with open('pretraining_loss.pkl', 'wb') as f:
+    pickle.dump(train_loss, f)
 
 segmentation_transform = transforms.Compose([
     transforms.Resize((256, 256)),  # Resize images to 256x256
@@ -405,7 +407,7 @@ model.flatten = False
 trainval_data = read_data('data/oxford/annotations/trainval.txt')
 train_data, val_data = split_data(trainval_data, split_ratio=0.8)
 
-batch_size = 256
+batch_size = 128
 
 oxford_train_dataset = OxfordPetsDataset('data/oxford', train_data, transform=segmentation_transform)
 oxford_val_dataset = OxfordPetsDataset('data/oxford', val_data, transform=segmentation_transform)
@@ -416,6 +418,8 @@ oxford_val_dataloader = DataLoader(oxford_val_dataset, batch_size=batch_size, sh
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 cross_entropy_loss = nn.CrossEntropyLoss()
+
+print('\n##### Begin fine-tuning #####\n')
 
 model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=100)
 
@@ -440,7 +444,9 @@ model.head = SegmentationHead(in_features=512, output_dim=3)
 # Update the model's forward method
 model.flatten = False
 
-model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=100)
+print('\n##### Begin benchmark training #####\n')
+
+model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=100, model_name='benchmark')
 
 with open('benchmark_train_loss.pkl', 'wb') as f:
     pickle.dump(train_loss, f)
@@ -453,3 +459,5 @@ with open('benchmark_train_accuracy.pkl', 'wb') as f:
 
 with open('benchmark_val_accuracy.pkl', 'wb') as f:
     pickle.dump(val_accuracy, f)
+
+print('Done!')
