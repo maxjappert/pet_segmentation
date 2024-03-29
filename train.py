@@ -1,30 +1,34 @@
 import os
 import pickle
 import random
-import sys
-
 import numpy as np
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torchvision.transforms as transforms
-import torchvision.datasets as datasets
 import torchvision.models as models
 from torch.utils.data import DataLoader, Dataset
 
 import torch
 import torch.nn.functional as F
-from torchvision.transforms import functional as TF, InterpolationMode
 from PIL import Image
 
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-
 np.set_printoptions(precision=3)
 
+# For reproducability
+seed = 42
+torch.manual_seed(seed)
+np.random.seed(seed)
+torch.cuda.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+random.seed(seed)
 
-def read_data(filename):
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+
+def read_data(filename: str) -> list:
     """
     :param filename: List of data points as data split.
     :return: List of data points as string.
@@ -34,7 +38,7 @@ def read_data(filename):
     return [line.strip().split()[0] for line in lines]
 
 
-def split_data(data, split_ratio=0.8, seed=42):
+def split_data(data: list, split_ratio=0.8) -> (list, list):
     """
     Splits data in two.
     :param data: List of string data points.
@@ -42,7 +46,6 @@ def split_data(data, split_ratio=0.8, seed=42):
     :param seed: Seed for random split.
     :return: Two lists, each a random split of the original data.
     """
-    random.seed(seed)
     random.shuffle(data)  # Randomly shuffle data
     split_point = int(len(data) * split_ratio)
     return data[:split_point], data[split_point:]
@@ -53,7 +56,7 @@ class SegmentationHead(nn.Module):
     This segmentation head is attached to the model after pre-training, replacing the pre-training head.
     It consists of convolutional layers and up-sampling layers in order to get the output pixel map to match the input dimension.
     """
-    def __init__(self, in_features, output_dim):
+    def __init__(self, in_features: int, output_dim: int):
         super(SegmentationHead, self).__init__()
         self.conv1 = nn.Conv2d(in_features, 256, kernel_size=3, padding=1)
         self.upsample1 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
@@ -66,7 +69,7 @@ class SegmentationHead(nn.Module):
         self.conv5 = nn.Conv2d(32, output_dim, kernel_size=3, padding=1)
 
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         x = F.relu(self.conv1(x))
         x = self.upsample1(x)
         x = F.relu(self.conv2(x))
@@ -109,7 +112,7 @@ class SimCLR(nn.Module):
 
         self.flatten = True
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         x = self.backbone(x)
         if self.flatten:
             x = x.view(x.size(0), -1)
@@ -121,13 +124,13 @@ class NTXentLoss(torch.nn.Module):
     """
     Normalized Temperature-scaled Cross Entropy Loss for pre-training.
     """
-    def __init__(self, temperature, device):
+    def __init__(self, temperature: float, device: torch.device):
         super(NTXentLoss, self).__init__()
         self.temperature = temperature
         self.device = device
         self.criterion = torch.nn.CrossEntropyLoss()
 
-    def forward(self, z_i, z_j):
+    def forward(self, z_i: torch.Tensor, z_j: torch.Tensor):
         """
         Assumes z_i and z_j are normalized embeddings of shape (batch_size, feature_size).
         Embeddings should be from the two views of the same image (positive pairs).
@@ -152,7 +155,7 @@ class NTXentLoss(torch.nn.Module):
         return loss
 
 
-def unpickle(file):
+def unpickle(file: str) -> dict:
     """
     For the data sets.
     :param file: Pickle file.
@@ -167,7 +170,7 @@ class ContrastiveLearningDataset(Dataset):
     """
     ImageNet dataset for the pre-training. Returns two versions of each image, each transformed differently.
     """
-    def __init__(self, root_dir, image_dim=64, transform1=None, transform2=None):
+    def __init__(self, root_dir: str, image_dim=64, transform1=None, transform2=None):
         """
         :param root_dir: Data directory.
         :param image_dim: Height/width of the images. We're using ImageNet, which always has square images.
@@ -189,7 +192,7 @@ class ContrastiveLearningDataset(Dataset):
     def __len__(self):
         return len(self.images)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         image = self.images[idx]
         if self.transform1 and self.transform2:
             image1 = self.transform1(image)
@@ -204,7 +207,7 @@ class OxfordPetsDataset(Dataset):
     """
     Dataset for the Oxford Pets data.
     """
-    def __init__(self, root_dir, data, transform=None):
+    def __init__(self, root_dir: str, data: list, transform=None):
         """
         :param root_dir: Data dir
         :param data: List of data names. Can be extracted from the data/oxford/annotations/*.txt files.
@@ -218,7 +221,7 @@ class OxfordPetsDataset(Dataset):
     def __len__(self):
         return len(self.images)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         img_name = self.images[idx]
         img_path = os.path.join(self.image_dir, img_name)
         annotation_path = os.path.join(self.annotation_dir, img_name.replace(".jpg", ".png"))
@@ -235,15 +238,15 @@ class OxfordPetsDataset(Dataset):
         return image, annotation
 
 
-def pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, model_name='pretrained_model'):
+def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, scheduler: StepLR, criterion: NTXentLoss, epochs=50, model_name='pretrained_model') -> (SimCLR, list):
     """
     Use contrastive learning to pre-train the model.
-    :param model: The model to be trained.
+    :param model: The model to be trained. Make sure that it has the pre-training head attached.
     :param train_loader: For the training data.
     :param optimizer: ADAM is probably the best choice.
     :param scheduler: Learning rate scheduler.
-    :param criterion: Loss function.
-    :param epochs: Number of epochs.
+    :param criterion: NTXEnt loss function for contrastive learning.
+    :param epochs: Number of epochs to train.
     :param model_name: Name of the output file without extension.
     :return: The pre-trained model and a list of losses per epoch.
     """
@@ -279,17 +282,18 @@ def pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, mo
     return model, train_loss_per_epoch
 
 
-def finetune(model, train_dataloader, val_dataloader, criterion, optimizer, num_epochs=50, model_name='finished_model'):
+def finetune(model: SimCLR, train_dataloader: DataLoader, val_dataloader: DataLoader, criterion: nn.CrossEntropyLoss, optimizer: optim, num_epochs=50, model_name='finished_model') -> (SimCLR, list, list, list, list):
     """
     To finetune the model after pre-training.
-    :param model: The model to be fine-tuned.
+    :param model: The model to be fine-tuned. Make sure to replace the pre-training head with the segmentation head
+    before fine-tuning.
     :param train_dataloader: For the training data.
     :param val_dataloader: For the validation data.
-    :param criterion: Loss function.
+    :param criterion: Cross entropy loss function for segmentation.
     :param optimizer: Optimizer.
     :param num_epochs: Number of epochs.
     :param model_name: For output file, without extension.
-    :return:
+    :return: Fine-tuned model with lists of losses and accuracies per epoch for both training and validation data.
     """
     model = model.to(device)
     train_loss_per_epoch = []
@@ -395,8 +399,7 @@ segmentation_transform = transforms.Compose([
 # Load the pre-trained model
 #model.load_state_dict(torch.load('pretrained_model.pth', map_location=torch.device('cuda')))
 
-# replace the head
-#model.backbone = nn.Sequential(*list(models.resnet34(pretrained=False).children())[:-2])
+# replace the pre-training head with the segmentation head
 model.head = SegmentationHead(in_features=512, output_dim=3)
 
 # Update the model's forward method
@@ -436,7 +439,6 @@ with open('finetuning_val_accuracy.pkl', 'wb') as f:
 # Now for the benchmark, whereby we don't pre-train and only finetune
 
 benchmark_model = SimCLR(out_features=128).to(device)
-#benchmark_model.backbone = nn.Sequential(*list(models.resnet34(pretrained=False).children())[:-1])
 benchmark_model.head = SegmentationHead(in_features=512, output_dim=3)
 
 # Update the model's forward method
