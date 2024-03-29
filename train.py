@@ -86,10 +86,12 @@ class PretrainingHead(nn.Module):
     """
     def __init__(self, in_features, output_dim):
         super(PretrainingHead, self).__init__()
-        self.fc = nn.Linear(in_features, output_dim)
+        self.fc1 = nn.Linear(in_features, output_dim)
+        self.fc2 = nn.Linear(output_dim, output_dim)
 
     def forward(self, x):
-        x = F.relu(self.fc(x))
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
         return x
 
 class SimCLR(nn.Module):
@@ -243,11 +245,11 @@ def pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, mo
     :param criterion: Loss function.
     :param epochs: Number of epochs.
     :param model_name: Name of the output file without extension.
-    :return: The pre-trained model.
+    :return: The pre-trained model and a list of losses per epoch.
     """
     model.train()
 
-    train_loss_per_batch = []
+    train_loss_per_epoch = []
 
     for epoch in range(epochs):
         epoch_loss = 0.0
@@ -260,25 +262,21 @@ def pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, mo
             optimizer.zero_grad()
 
             z_i, z_j = model(image1), model(image2)
-            loss = criterion(z_i, z_j)  # Compute the loss
+            loss = criterion(z_i, z_j)
 
             loss.backward()
             optimizer.step()
 
             # Print statistics
             epoch_loss += loss.item()
-            train_loss_per_batch.append(loss.item())
-            num_batches += 1
-            if i % 100 == 99:
-                print(f'Epoch {epoch + 1}, Batch {i + 1}, Loss: {np.round(epoch_loss / num_batches, 3)}')
-                epoch_loss = 0.0
-                num_batches = 0
+
+        train_loss_per_epoch.append(epoch_loss)
 
         scheduler.step()
-        print(f'Epoch {epoch + 1} finished')
+        print(f'Epoch {epoch + 1} loss: {np.round(epoch_loss, 4)}')
 
     torch.save(model.state_dict(), f'{model_name}.pth')
-    return model, train_loss_per_batch
+    return model, train_loss_per_epoch
 
 
 def finetune(model, train_dataloader, val_dataloader, criterion, optimizer, num_epochs=50, model_name='finished_model'):
@@ -443,7 +441,7 @@ benchmark_model.head = SegmentationHead(in_features=512, output_dim=3)
 
 # Update the model's forward method
 benchmark_model.flatten = False
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+optimizer = optim.Adam(benchmark_model.parameters(), lr=1e-3)
 
 print('\n##### Begin benchmark training #####\n')
 
