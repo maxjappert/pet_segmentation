@@ -16,7 +16,7 @@ from torch.optim.lr_scheduler import StepLR
 
 np.set_printoptions(precision=3)
 
-# For reproducability
+# For reproducibility
 seed = 42
 torch.manual_seed(seed)
 np.random.seed(seed)
