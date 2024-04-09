@@ -271,7 +271,7 @@ class OxfordPetsDataset(Dataset):
         return image, annotation
 
 
-def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, scheduler: StepLR, criterion: NTXentLoss, epochs=50, model_name='pretrained_model') -> (SimCLR, list):
+def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, scheduler: StepLR, criterion: NTXentLoss, epochs=50, model_name='pretrained_model_NM') -> (SimCLR, list):
     """
     Use contrastive learning to pre-train the model.
     :param model: The model to be trained. Make sure that it has the pre-training head attached.
@@ -315,7 +315,7 @@ def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, sc
     return model, train_loss_per_epoch
 
 
-def finetune(model: SimCLR, train_dataloader: DataLoader, val_dataloader: DataLoader, criterion: nn.CrossEntropyLoss, optimizer: optim, num_epochs=50, model_name='finished_model') -> (SimCLR, list, list, list, list):
+def finetune(model: SimCLR, train_dataloader: DataLoader, val_dataloader: DataLoader, criterion: nn.CrossEntropyLoss, optimizer: optim, num_epochs=50, model_name='finished_model_NM') -> (SimCLR, list, list, list, list):
     """
     To finetune the model after pre-training.
     :param model: The model to be fine-tuned. Make sure to replace the pre-training head with the segmentation head
@@ -421,7 +421,7 @@ print('\n##### Begin pre-training #####')
 # Perform pre-training
 model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50)
 
-with open('pretraining_loss.pkl', 'wb') as f:
+with open('pretraining_loss_NM.pkl', 'wb') as f:
     pickle.dump(train_loss, f)
 
 segmentation_transform = transforms.Compose([
@@ -457,18 +457,21 @@ print('\n##### Begin fine-tuning #####\n')
 
 model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50)
 
-with open('finetuning_train_loss.pkl', 'wb') as f:
+with open('finetuning_train_loss_NM.pkl', 'wb') as f:
     pickle.dump(train_loss, f)
 
-with open('finetuning_val_loss.pkl', 'wb') as f:
+with open('finetuning_val_loss_NM.pkl', 'wb') as f:
     pickle.dump(val_loss, f)
 
-with open('finetuning_train_accuracy.pkl', 'wb') as f:
+with open('finetuning_train_accuracy_NM.pkl', 'wb') as f:
     pickle.dump(train_accuracy, f)
 
-with open('finetuning_val_accuracy.pkl', 'wb') as f:
+with open('finetuning_val_accuracy_NM.pkl', 'wb') as f:
     pickle.dump(val_accuracy, f)
 
+print('Done!')
+
+"""
 # Now for the benchmark, whereby we don't pre-train and only finetune
 
 benchmark_model = SimCLR(out_features=128).to(device)
@@ -495,3 +498,4 @@ with open('benchmark_val_accuracy.pkl', 'wb') as f:
     pickle.dump(val_accuracy, f)
 
 print('Done!')
+"""
