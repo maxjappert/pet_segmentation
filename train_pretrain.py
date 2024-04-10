@@ -39,13 +39,13 @@ def train(config_id):
 
     dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
     dataset_size = len(dataset)  # Total number of examples in the dataset
-    train_size = int(dataset_size * 0.8)  # Let's say you want 80% of the data for training
-    val_size = dataset_size - train_size  # The rest goes into the validation set
+    train_size = int(dataset_size * 0.8)
+    val_size = dataset_size - train_size
     train_data, val_data = random_split(dataset, [train_size, val_size])
 
-    train_loader = DataLoader(train_data, batch_size=64, shuffle=True)  # Adjust batch_size as per your requirement
-    val_loader = DataLoader(val_data, batch_size=64,
-                            shuffle=False)  # Usually, shuffle is False for validation/test loaders
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=12)
+    val_loader = DataLoader(val_data, batch_size=batch_size,
+                            shuffle=False, num_workers=12)  # Usually, shuffle is False for validation/test loaders
 
 
     # Initialize the model and loss function
@@ -66,6 +66,7 @@ def train(config_id):
 
     with open('pretraining_val_loss.pkl', 'wb') as f:
         pickle.dump(val_loss, f)
+
 
 if __name__ == '__main__':
     train(0)
