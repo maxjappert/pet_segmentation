@@ -41,7 +41,7 @@ def main(train_size):
     model = SimCLR(out_features=128)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    model.load_state_dict(torch.load('pretrained_model.pth', map_location=torch.device('cuda')))
+    model.load_state_dict(torch.load('pretrained_model.pth', map_location=device))
 
     # replace the pre-training head with the segmentation head
     model.head = SegmentationHead(in_features=512, output_dim=3)
@@ -108,4 +108,4 @@ def main(train_size):
     print('Done!')
 
 if __name__ == '__main__':
-    main(0.05)
+    for i in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
