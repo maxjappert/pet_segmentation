@@ -4,7 +4,7 @@ import random
 import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 
 import torch
 import torch.nn.functional as F
@@ -37,8 +37,16 @@ def train(config_id):
 
     batch_size = 2048
 
-    train_dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=16)
+    dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
+    dataset_size = len(dataset)  # Total number of examples in the dataset
+    train_size = int(dataset_size * 0.8)  # Let's say you want 80% of the data for training
+    val_size = dataset_size - train_size  # The rest goes into the validation set
+    train_data, val_data = random_split(dataset, [train_size, val_size])
+
+    train_loader = DataLoader(train_data, batch_size=64, shuffle=True)  # Adjust batch_size as per your requirement
+    val_loader = DataLoader(val_data, batch_size=64,
+                            shuffle=False)  # Usually, shuffle is False for validation/test loaders
+
 
     # Initialize the model and loss function
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -51,10 +59,13 @@ def train(config_id):
     print('\n##### Begin pre-training #####')
 
     # Perform pre-training
-    model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, device=device)
+    model, train_loss, val_loss = pretrain(model, train_loader, val_loader, optimizer, scheduler, criterion, epochs=50, device=device)
 
-    with open('pretraining_loss.pkl', 'wb') as f:
+    with open('pretraining_train_loss.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
+
+    with open('pretraining_val_loss.pkl', 'wb') as f:
+        pickle.dump(val_loss, f)
 
 if __name__ == '__main__':
     train(0)
