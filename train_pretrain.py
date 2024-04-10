@@ -16,36 +16,24 @@ from torch.optim.lr_scheduler import StepLR
 from u_datasets import read_data, split_data, ContrastiveLearningDataset, OxfordPetsDataset
 from u_models import SegmentationHead, SimCLR
 from u_train import NTXentLoss, pretrain, finetune
+from u_transformations import trans_config
 
-np.set_printoptions(precision=3)
+def train(config_id):
+    np.set_printoptions(precision=3)
 
-# For reproducibility
-seed = 42
-torch.manual_seed(seed)
-np.random.seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)
-random.seed(seed)
+    # For reproducibility
+    seed = 42
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    random.seed(seed)
 
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
-def train():
+    transform_contrastive_1, transform_contrastive_2, id = trans_config(config_id)
     # Data Augmentation for
-    transform_contrastive_1 = transforms.Compose([
-        transforms.RandomResizedCrop(size=64, scale=(0.5, 1.0)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-
-    transform_contrastive_2 = transforms.Compose([
-        transforms.RandomResizedCrop(size=64),
-        transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),
-        transforms.RandomVerticalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
 
     batch_size = 2048
 
@@ -69,4 +57,11 @@ def train():
         pickle.dump(train_loss, f)
 
 if __name__ == '__main__':
-    train()
+    train(0)
+    train(1)
+    train(2)
+    train(3)
+    train(4)
+    train(5)
+    train(6)
+    train(7)
