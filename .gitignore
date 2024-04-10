@@ -1,2 +1,3 @@
-data/*
-adl_files/*
+data/
+adl_files/
+__pychache__
