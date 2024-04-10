@@ -66,11 +66,10 @@ def main(train_size):
 
     print('\n##### Begin fine-tuning #####\n')
 
-    model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, device=device)
+    model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, model_name=f"pretrained_{train_size}",device=device)
 
     with open(f'smaller/finetuning_train_loss_{train_size}.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
-
     with open(f'smaller/finetuning_val_loss_{train_size}.pkl', 'wb') as f:
         pickle.dump(val_loss, f)
 
@@ -91,7 +90,7 @@ def main(train_size):
 
     print('\n##### Begin benchmark training #####\n')
 
-    benchmark_model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(benchmark_model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, model_name='benchmark', device=device)
+    benchmark_model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(benchmark_model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, model_name=f'benchmark_{train_size}', device=device)
 
     with open(f'smaller/benchmark_train_loss_{train_size}.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
@@ -108,4 +107,5 @@ def main(train_size):
     print('Done!')
 
 if __name__ == '__main__':
-    for i in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+    # for i in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
