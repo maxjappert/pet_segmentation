@@ -33,14 +33,14 @@ class NTXentLoss(torch.nn.Module):
         batch_size = z_i.shape[0]
 
         # Concatenate the embeddings
-        z = torch.cat((z_i, z_j), dim=0)
+        z = torch.cat((z_i, z_j), dim=0).to(self.device)
 
         # Compute similarity
-        sim = torch.mm(z, z.T) / self.temperature
+        sim = (torch.mm(z, z.T) / self.temperature).to(self.device)
 
         # Create labels
-        labels = torch.arange(2 * batch_size).to(self.device)
-        labels = (labels + batch_size) % (2 * batch_size)
+        labels = torch.arange(2 * batch_size)
+        labels = ((labels + batch_size) % (2 * batch_size)).to(self.device)
 
         # Mask to remove self-similarity
         mask = torch.eye(2 * batch_size, dtype=torch.bool).to(self.device)
@@ -62,6 +62,8 @@ def pretrain(model: SimCLR, train_loader: DataLoader, val_loader: DataLoader, op
     :param device: Device to run computation on.
     :return: The pre-trained model and a list of losses per epoch.
     """
+
+    model = model.to(device)
 
     train_loss_per_epoch = []
     val_loss_per_epoch = []
