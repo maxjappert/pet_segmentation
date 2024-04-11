@@ -139,7 +139,7 @@ def finetune(model: SimCLR, train_dataloader: DataLoader, val_dataloader: DataLo
             optimizer.zero_grad()
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
-            loss = criterion(outputs, labels)  # Adjust according to your setup
+            loss = criterion(outputs.squeeze(), labels)  # Adjust according to your setup
             loss.backward()
             optimizer.step()
 

@@ -20,7 +20,7 @@ def visualize_segmentation(images, masks, labels, num_images=5):
     """
     # Ensure we're working with numpy arrays.
     images = images.numpy()#.squeeze()
-    masks = masks.numpy()#.squeeze()
+    masks = torch.argmax(outputs, dim=1).numpy()#.squeeze()
     labels = labels.numpy()#.squeeze()
     print(masks.shape)
     print(labels.shape)
@@ -29,8 +29,8 @@ def visualize_segmentation(images, masks, labels, num_images=5):
 
     for i in range(num_images):
         img = images[i].transpose((1, 2, 0)) #np.transpose(images[i], (1, 2, 0))  # Convert from (C, H, W) to (H, W, C)
-        mask = masks[i].transpose((1, 2, 0))  # Handle single-channel mask
-        label = labels[i].transpose((1, 2, 0))
+        mask = masks[i]  # Handle single-channel mask
+        label = labels[i]
 
         # Normalize the image if necessary
         img = (img - img.min()) / (img.max() - img.min())
@@ -58,6 +58,7 @@ def visualize_segmentation(images, masks, labels, num_images=5):
 # visualize_segmentation(original_images, predicted_masks, num_images=5)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 transform = transforms.Compose([
     transforms.Resize((256, 256)),  # Resize images to 256x256
@@ -81,6 +82,9 @@ oxford_test_dataloader = DataLoader(oxford_test_dataset, batch_size=num_images, 
 
 images, labels = next(iter(oxford_test_dataloader))
 images = images.to(device)
-outputs = model(images)
+
+model.eval()
+with torch.no_grad():
+    outputs = model(images)
 
 visualize_segmentation(images.detach().cpu(), outputs.detach().cpu(), labels.detach().cpu(), num_images=num_images)

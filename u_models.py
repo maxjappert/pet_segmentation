@@ -20,7 +20,7 @@ class SegmentationHead(nn.Module):
         self.upsample3 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.conv4 = nn.Conv2d(64, 32, kernel_size=3, padding=1)
         self.upsample4 = nn.Upsample(size=(256, 256), mode='bilinear', align_corners=True)
-        self.conv5 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
+        self.conv5 = nn.Conv2d(32, 3, kernel_size=3, padding=1)
 
 
     def forward(self, x: torch.Tensor):
