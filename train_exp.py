@@ -19,6 +19,16 @@ from u_models import SegmentationHead, SimCLR
 from u_train import NTXentLoss, pretrain, finetune
 from u_transformations import trans_config
 
+device_used = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f'Using device: {device_used}')
+
+print("Current working directory:", os.getcwd())
+
+smaller_dir = '/tmp/pycharm_project_318/exp'
+if not os.path.exists(smaller_dir):
+    os.makedirs(smaller_dir)
+
+
 def train(config_id):
     np.set_printoptions(precision=3)
     NUM_PROCS = os.cpu_count() - 2
@@ -53,9 +63,9 @@ def train(config_id):
     print('\n##### Begin pre-training #####')
 
     # Perform pre-training
-    model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, device=device)
+    model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50,model_name=f"pretrained_model_oeq_{id}", device=device)
 
-    with open(f'exp/pretraining_loss_{id}.pkl', 'wb') as f:
+    with open(f'exp/pretraining_loss_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
 
     torch.backends.cudnn.deterministic = True
@@ -70,7 +80,7 @@ def train(config_id):
     model = SimCLR(out_features=128)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    model.load_state_dict(torch.load(f'exp/pretrained_model_{id}.pth', map_location=device))
+    model.load_state_dict(torch.load(f"pretrained_model_oeq_{id}.pth", map_location=device))
 
     # replace the pre-training head with the segmentation head
     model.head = SegmentationHead(in_features=512, output_dim=3)
@@ -94,50 +104,26 @@ def train(config_id):
 
     print('\n##### Begin fine-tuning #####\n')
 
-    model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, model_name=f"pretrained_{id}",device=device)
+    model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50,  model_name=f'finetuned_model_oeq_{id}',device=device)
 
-    with open(f'exp/finetuning_train_loss_{id}.pkl', 'wb') as f:
+    with open(f'exp/finetuning_train_loss_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
 
-    with open(f'exp/finetuning_val_loss_{id}.pkl', 'wb') as f:
+    with open(f'exp/finetuning_val_loss_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(val_loss, f)
 
-    with open(f'exp/finetuning_train_accuracy_{id}.pkl', 'wb') as f:
+    with open(f'exp/finetuning_train_accuracy_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(train_accuracy, f)
 
-    with open(f'exp/finetuning_val_accuracy_{id}.pkl', 'wb') as f:
+    with open(f'exp/finetuning_val_accuracy_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(val_accuracy, f)
 
-    # Now for the benchmark, whereby we don't pre-train and only finetune
-
-    benchmark_model = SimCLR(out_features=128).to(device)
-    benchmark_model.head = SegmentationHead(in_features=512, output_dim=3)
-
-    # Update the model's forward method
-    benchmark_model.flatten = False
-    optimizer = optim.Adam(benchmark_model.parameters(), lr=1e-3)
-
-    print('\n##### Begin benchmark training #####\n')
-
-    benchmark_model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(benchmark_model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, model_name=f'benchmark_{id}', device=device)
-
-    with open(f'exp/benchmark_train_loss_{id}.pkl', 'wb') as f:
-        pickle.dump(train_loss, f)
-
-    with open(f'exp/benchmark_val_loss_{id}.pkl', 'wb') as f:
-        pickle.dump(val_loss, f)
-
-    with open(f'exp/benchmark_train_accuracy_{id}.pkl', 'wb') as f:
-        pickle.dump(train_accuracy, f)
-
-    with open(f'exp/benchmark_val_accuracy_{id}.pkl', 'wb') as f:
-        pickle.dump(val_accuracy, f)
 
     print('Done!')
 
 if __name__ == '__main__':
-    os.makedirs('exp', exist_ok=True)
-    train(0)
+    #os.makedirs('exp', exist_ok=True)
+    #train(0)
     train(1)
     train(2)
     train(3)
