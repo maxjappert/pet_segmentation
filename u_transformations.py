@@ -40,7 +40,7 @@ def trans_config(num):
 
     elif num == 1:
         transform_contrastive_1 = transforms.Compose([
-            transforms.EleasticTransform(),
+            transforms.ElasticTransform(),
             transforms.RandomResizedCrop(size=64, scale=(0.5, 1.0)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
@@ -114,7 +114,7 @@ def trans_config(num):
     elif num == 5:
         transform_contrastive_1 = transforms.Compose([
             transforms.RandomResizedCrop(size=64, scale=(0.5, 1.0)),
-            transforms.EleasticTransform(),
+            transforms.ElasticTransform(),
             transforms.RandomSolarize(threshold=192),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
