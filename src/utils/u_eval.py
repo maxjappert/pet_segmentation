@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+from config import *
+
 
 @torch.no_grad()
 def evaluate_model(model, dataloader, device):
@@ -16,10 +18,10 @@ def evaluate_model(model, dataloader, device):
         logits = model(imgs)
         preds = torch.argmax(logits, dim=1)
         targets = torch.squeeze(labels)
-                
+
         intersection_total += torch.logical_and(preds, targets).sum()
         union_total += torch.logical_or(preds, targets).sum()
-                
+
         pixel_correct += (preds == targets).sum()
         pixel_count += targets.numel()
 
@@ -27,4 +29,3 @@ def evaluate_model(model, dataloader, device):
     accuracy = (pixel_correct / pixel_count).item()
 
     return accuracy, iou
-

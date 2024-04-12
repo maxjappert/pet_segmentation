@@ -1,6 +1,8 @@
 import numpy as np
 import torch.nn as nn
 import torchvision.models as models
+from config import *
+
 
 import torch
 import torch.nn.functional as F

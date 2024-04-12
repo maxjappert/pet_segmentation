@@ -4,6 +4,7 @@ import random
 import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
+from config import *
 
 
 def trans_config(num):
