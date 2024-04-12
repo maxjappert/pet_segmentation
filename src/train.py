@@ -34,20 +34,7 @@ torch.backends.cudnn.benchmark = False
 
 def train():
     # Data Augmentation for
-    transform_contrastive_1 = transforms.Compose([
-        transforms.RandomResizedCrop(size=64, scale=(0.5, 1.0)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-
-    transform_contrastive_2 = transforms.Compose([
-        transforms.RandomResizedCrop(size=64),
-        transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),
-        transforms.RandomVerticalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+    transform_contrastive_1, transform_contrastive_2, id = trans_config(0)
 
     batch_size = 2048
 
