@@ -1,6 +1,4 @@
 import pickle
-from config import *
-
 
 # LOAD THE DATA, PICKLE FORMAT
 def load_data_from_pickle(file_path):
@@ -17,7 +15,7 @@ def load_data_from_pickle(file_path):
         return None
 
 # load the data
-pretrained_loss = load_data_from_pickle('pretraining_loss.pkl')
+pretrained_loss = load_data_from_pickle('pretraining_loss.pkl') 
 
 finetuning_train_loss = load_data_from_pickle('finetuning_train_loss.pkl')
 finetuning_train_acc = load_data_from_pickle('finetuning_train_accuracy.pkl')
@@ -30,3 +28,4 @@ benchmark_train_acc = load_data_from_pickle('benchmark_train_accuracy.pkl')
 
 benchmark_val_loss = load_data_from_pickle('benchmark_val_loss.pkl')
 benchmark_val_acc = load_data_from_pickle('benchmark_val_accuracy.pkl')
+

@@ -14,11 +14,10 @@ from PIL import Image
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-from config import *
-from src.utils.u_datasets import read_data, split_data, ContrastiveLearningDataset, OxfordPetsDataset
-from src.utils.u_models import SegmentationHead, SimCLR
-from src.utils.u_train import NTXentLoss, pretrain, finetune
-from src.utils.u_transformations import trans_config
+from u_datasets import read_data, split_data, ContrastiveLearningDataset, OxfordPetsDataset
+from u_models import SegmentationHead, SimCLR
+from u_train import NTXentLoss, pretrain, finetune
+from u_transformations import trans_config
 
 device_used = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using device: {device_used}')
