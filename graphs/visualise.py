@@ -4,9 +4,11 @@ import torch
 import torchvision.transforms.functional as TF
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
+from config import *
 
-from u_datasets import read_data, split_data, OxfordPetsDataset
-from u_models import SimCLR, SegmentationHead
+
+from src.utils.u_datasets import read_data, split_data, OxfordPetsDataset
+from src.utils.u_models import SimCLR, SegmentationHead
 
 
 def visualize_segmentation(images, masks, labels, num_images=5):

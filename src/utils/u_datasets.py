@@ -4,6 +4,8 @@ import random
 import numpy as np
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
+from config import *
+
 
 import torch
 from PIL import Image

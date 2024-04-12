@@ -5,6 +5,8 @@ import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+from config import *
+
 
 import torch
 import torch.nn.functional as F
@@ -13,9 +15,11 @@ from PIL import Image
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-from u_datasets import read_data, split_data, ContrastiveLearningDataset, OxfordPetsDataset
-from u_models import SegmentationHead, SimCLR
-from u_train import NTXentLoss, pretrain, finetune
+from config import *
+from src.utils.u_datasets import read_data, split_data, ContrastiveLearningDataset, OxfordPetsDataset
+from src.utils.u_models import SegmentationHead, SimCLR
+from src.utils.u_train import NTXentLoss, pretrain, finetune
+from src.utils.u_transformations import trans_config
 
 import os
 print("Current working directory:", os.getcwd())
