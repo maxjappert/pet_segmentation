@@ -1,7 +1,8 @@
 import os
 
-# configure global file paths
+NUM_PROCS = os.cpu_count()
 
+# configure global file paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')

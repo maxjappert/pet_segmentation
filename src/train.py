@@ -53,8 +53,8 @@ def train():
 
     batch_size = 2048
 
-    train_dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=16)
+    train_dataset = ContrastiveLearningDataset(root_dir=OXFORD_DIR, image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_PROCS-2)
 
     # Initialize the model and loss function
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -86,16 +86,17 @@ def train():
     # Update the model's forward method
     model.flatten = False
 
-    trainval_data = read_data('data/oxford/annotations/trainval.txt')
+    trainval_path = os.path.join(OXFORD_DIR, 'annotations/trainval.txt')
+    trainval_data = read_data(trainval_path)
     train_data, val_data = split_data(trainval_data, split_ratio=0.8)
 
     batch_size = 128
 
-    oxford_train_dataset = OxfordPetsDataset('data/oxford', train_data, transform=segmentation_transform)
-    oxford_val_dataset = OxfordPetsDataset('data/oxford', val_data, transform=segmentation_transform)
+    oxford_train_dataset = OxfordPetsDataset(OXFORD_DIR, train_data, transform=segmentation_transform)
+    oxford_val_dataset = OxfordPetsDataset(OXFORD_DIR, val_data, transform=segmentation_transform)
 
-    oxford_train_dataloader = DataLoader(oxford_train_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
-    oxford_val_dataloader = DataLoader(oxford_val_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
+    oxford_train_dataloader = DataLoader(oxford_train_dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_PROCS-2)
+    oxford_val_dataloader = DataLoader(oxford_val_dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_PROCS-2)
 
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
@@ -105,16 +106,16 @@ def train():
 
     model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, device=device)
 
-    with open('finetuning_train_loss.pkl', 'wb') as f:
+    with open(os.path.join(DATA_OUT_DIR, 'finetuning_train_loss.pkl'), 'wb') as f:
         pickle.dump(train_loss, f)
 
-    with open('finetuning_val_loss.pkl', 'wb') as f:
+    with open(os.path.join(DATA_OUT_DIR, 'finetuning_val_loss.pkl'), 'wb') as f:
         pickle.dump(val_loss, f)
 
-    with open('finetuning_train_accuracy.pkl', 'wb') as f:
+    with open(os.path.join(DATA_OUT_DIR, 'finetuning_train_accuracy.pkl'), 'wb') as f:
         pickle.dump(train_accuracy, f)
 
-    with open('finetuning_val_accuracy.pkl', 'wb') as f:
+    with open(os.path.join(DATA_OUT_DIR, 'finetuning_val_accuracy.pkl'), 'wb') as f:
         pickle.dump(val_accuracy, f)
 
     # Now for the benchmark, whereby we don't pre-train and only finetune
@@ -130,16 +131,16 @@ def train():
 
     benchmark_model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(benchmark_model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, model_name='benchmark', device=device)
 
-    with open('benchmark_train_loss.pkl', 'wb') as f:
+    with open(os.path.join(DATA_OUT_DIR, 'benchmark_train_loss.pkl'), 'wb') as f:
         pickle.dump(train_loss, f)
 
-    with open('benchmark_val_loss.pkl', 'wb') as f:
+    with open(os.path.join(DATA_OUT_DIR, 'benchmark_val_loss.pkl'), 'wb') as f:
         pickle.dump(val_loss, f)
 
-    with open('benchmark_train_accuracy.pkl', 'wb') as f:
+    with open(os.path.join(DATA_OUT_DIR, 'benchmark_train_accuracy.pkl'), 'wb') as f:
         pickle.dump(train_accuracy, f)
 
-    with open('benchmark_val_accuracy.pkl', 'wb') as f:
+    with open(os.path.join(DATA_OUT_DIR, 'benchmark_val_accuracy.pkl'), 'wb') as f:
         pickle.dump(val_accuracy, f)
 
     print('Done!')
