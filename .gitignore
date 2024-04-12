@@ -2,4 +2,4 @@ data/imagenet64
 data/oxford
 adl_files/
 __pychache__
-models/
+models/*.pth
