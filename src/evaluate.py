@@ -14,10 +14,10 @@ from PIL import Image
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-from .u_models import SimCLR, SegmentationHead
-from .u_eval import evaluate_model
-from .u_datasets import read_data, OxfordPetsDataset
-from .u_transformations import trans_config
+from utils.u_models import SimCLR, SegmentationHead
+from utils.u_eval import evaluate_model
+from utils.u_datasets import read_data, OxfordPetsDataset
+from utils.u_transformations import trans_config
 
 def eval_each_method():
     """
@@ -56,3 +56,6 @@ def eval_each_method():
         results_dict[file_name] = results
 
     return results_dict
+
+if __name__ == '__main__':
+    results = eval_each_method()
