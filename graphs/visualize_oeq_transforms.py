@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks
 from PIL import Image, ImageOps
+from config import *
+
 
 def plot(imgs, row_title=None, **imshow_kwargs):
     if not isinstance(imgs[0], list):
@@ -123,7 +125,7 @@ transformations = [
     transform_elastic_solarize_posterize
 ]
 
-transformation_names = ["Elastic", "Solarize", "Posterize", 
+transformation_names = ["Elastic", "Solarize", "Posterize",
                         "El. + Sol.", "El. + Pos.",
                         "Sol. + Pos.", "El. + Sol. + Pos."]
 

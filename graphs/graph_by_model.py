@@ -1,5 +1,7 @@
 from graph_load_pickle import *
 import matplotlib.pyplot as plt
+from config import *
+
 
 # colors = green, lightgreen, blue, skyblue, darkred, lightcoral, saddlebrown, tan   (...)
 # markers = s , ^ , o , v , > , <   (...)
@@ -35,7 +37,7 @@ axs[1].grid(True)
 # Adjust layout
 plt.tight_layout()
 
-# save the plot 
+# save the plot
 plt.savefig('graph_by_model.png')
 
 # Show plots

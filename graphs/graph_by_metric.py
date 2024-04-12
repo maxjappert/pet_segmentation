@@ -1,5 +1,7 @@
 from graph_load_pickle import *
 import matplotlib.pyplot as plt
+from config import *
+
 
 # colors = green, lightgreen, blue, skyblue, darkred, lightcoral, saddlebrown, tan   (...)
 # markers = s , ^ , o , v , > , <   (...)
@@ -20,7 +22,7 @@ axs[0].set_title('Benchmark and Fine-Tuning Loss Values Over Epochs',fontweight=
 axs[0].legend()
 axs[0].grid(True)
 
-# Plot accuracy values 
+# Plot accuracy values
 axs[1].plot(epochs, benchmark_train_acc, label='Benchmark Train Accuracy',marker='^', color='darkred')
 axs[1].plot(epochs, benchmark_val_acc, label='Benchmark Validation Accuracy',marker='^', color='lightcoral')
 axs[1].plot(epochs, finetuning_train_acc, label='Fine-Tuning Train Accuracy',marker='s', color='green')
@@ -35,7 +37,7 @@ axs[1].grid(True)
 # Adjust layout
 plt.tight_layout()
 
-# save the plot 
+# save the plot
 plt.savefig('graph_by_metric.png')
 
 # Show plots
