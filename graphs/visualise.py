@@ -4,11 +4,9 @@ import torch
 import torchvision.transforms.functional as TF
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
-from config import *
 
-
-from src.utils.u_datasets import read_data, split_data, OxfordPetsDataset
-from src.utils.u_models import SimCLR, SegmentationHead
+from ..src.utils.u_datasets import read_data, split_data, OxfordPetsDataset
+from ..src.utils.u_models import SimCLR, SegmentationHead
 
 
 def visualize_segmentation(images, masks, labels, num_images=5):
@@ -22,7 +20,7 @@ def visualize_segmentation(images, masks, labels, num_images=5):
     """
     # Ensure we're working with numpy arrays.
     images = images.numpy()#.squeeze()
-    masks = torch.argmax(outputs, dim=1).numpy()#.squeeze()
+    masks = torch.argmax(masks, dim=1).numpy()#.squeeze()
     labels = labels.numpy()#.squeeze()
     print(masks.shape)
     print(labels.shape)
@@ -56,37 +54,43 @@ def visualize_segmentation(images, masks, labels, num_images=5):
     plt.show()
 
 # Example usage:
-# Assuming `original_images` and `predicted_masks` are your tensors of images and masks respectively
+# Assuming ⁠ original_images ⁠ and ⁠ predicted_masks ⁠ are your tensors of images and masks respectively
 # visualize_segmentation(original_images, predicted_masks, num_images=5)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
+def vis():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
 
-transform = transforms.Compose([
-    transforms.Resize((256, 256)),  # Resize images to 256x256
-    transforms.ToTensor(),  # Convert the PIL Image to a tensor
-])
+    transform = transforms.Compose([
+        transforms.Resize((256, 256)),  # Resize images to 256x256
+        transforms.ToTensor(),  # Convert the PIL Image to a tensor
+    ])
 
-model = SimCLR(out_features=128).to(device)
-model.head = SegmentationHead(in_features=512, output_dim=3)
-model.load_state_dict(torch.load('finished_model.pth', map_location=device))
-model = model.to(device)
+    model = SimCLR(out_features=128).to(device)
+    model.head = SegmentationHead(in_features=512, output_dim=3)
+    model.load_state_dict(torch.load('main_models/finished_model.pth', map_location=device))
+    model = model.to(device)
 
-# Update the model's forward method
-model.flatten = False
+    # Update the model's forward method
+    model.flatten = False
 
-data = read_data('data/oxford/annotations/test.txt')
+    data = read_data('data/oxford/annotations/test.txt')
 
-oxford_test_dataset = OxfordPetsDataset('data/oxford', data, transform=transform)
+    oxford_test_dataset = OxfordPetsDataset('data/oxford', data, transform=transform)
 
-num_images = 4
-oxford_test_dataloader = DataLoader(oxford_test_dataset, batch_size=num_images, shuffle=True, num_workers=4)
+    num_images = 4
+    oxford_test_dataloader = DataLoader(oxford_test_dataset, batch_size=num_images, shuffle=True, num_workers=4)
 
-images, labels = next(iter(oxford_test_dataloader))
-images = images.to(device)
+    images, labels = next(iter(oxford_test_dataloader))
+    images = images.to(device)
 
-model.eval()
-with torch.no_grad():
-    outputs = model(images)
+    model.eval()
+    with torch.no_grad():
+        outputs = model(images)
 
-visualize_segmentation(images.detach().cpu(), outputs.detach().cpu(), labels.detach().cpu(), num_images=num_images)
+    print(outputs.shape)
+    print(labels.shape)
+    visualize_segmentation(images.detach().cpu(), outputs.detach().cpu(), labels.detach().cpu(), num_images=num_images)
+
+if _name_ == '_main_':
+    vis()

@@ -14,10 +14,10 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
 from config import *
-from src.utils.u_datasets import read_data, split_data, ContrastiveLearningDataset, OxfordPetsDataset
-from src.utils.u_models import SegmentationHead, SimCLR
-from src.utils.u_train import NTXentLoss, pretrain, finetune
-from src.utils.u_transformations import trans_config
+from ..src.utils.u_datasets import read_data, split_data, ContrastiveLearningDataset, OxfordPetsDataset
+from ..src.utils.u_models import SegmentationHead, SimCLR
+from ..src.utils.u_train import NTXentLoss, pretrain, finetune
+from ..src.utils.u_transformations import trans_config
 
 def train(config_id):
     np.set_printoptions(precision=3)
