@@ -13,7 +13,7 @@ from PIL import Image
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-from config import *
+from pet_segmentation import config
 from src.utils.u_datasets import read_data, split_data, ContrastiveLearningDataset, OxfordPetsDataset
 from src.utils.u_models import SegmentationHead, SimCLR
 from src.utils.u_train import NTXentLoss, pretrain, finetune
