@@ -32,7 +32,7 @@ class SegmentationHead(nn.Module):
         x = self.upsample3(x)
         x = F.relu(self.conv4(x))
         x = self.upsample4(x)
-        x = F.relu(self.conv5(x))
+        x = self.conv5(x)
 
         return x
 

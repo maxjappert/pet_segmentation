@@ -22,15 +22,16 @@ def visualize_segmentation(images, masks, labels, num_images=5):
     images = images.numpy()#.squeeze()
     masks = torch.argmax(masks, dim=1).numpy()#.squeeze()
     labels = labels.numpy()#.squeeze()
-    print(masks.shape)
-    print(labels.shape)
 
     fig, axs = plt.subplots(nrows=num_images, ncols=3, figsize=(10, 3 * num_images))
 
     for i in range(num_images):
         img = images[i].transpose((1, 2, 0)) #np.transpose(images[i], (1, 2, 0))  # Convert from (C, H, W) to (H, W, C)
-        mask = masks[i]  # Handle single-channel mask
+        mask = masks[i]#.transpose((1, 2, 0))  # Handle single-channel mask
         label = labels[i]
+
+        print(masks.min())
+        print(masks.max())
 
         # Normalize the image if necessary
         img = (img - img.min()) / (img.max() - img.min())
@@ -68,7 +69,7 @@ def vis():
 
     model = SimCLR(out_features=128).to(device)
     model.head = SegmentationHead(in_features=512, output_dim=3)
-    model.load_state_dict(torch.load('main_models/finished_model.pth', map_location=device))
+    model.load_state_dict(torch.load('benchmark.pth', map_location=device))
     model = model.to(device)
 
     # Update the model's forward method
@@ -88,9 +89,9 @@ def vis():
     with torch.no_grad():
         outputs = model(images)
 
-    print(outputs.shape)
-    print(labels.shape)
     visualize_segmentation(images.detach().cpu(), outputs.detach().cpu(), labels.detach().cpu(), num_images=num_images)
 
-if _name_ == '_main_':
+vis()
+
+if __name__ == '_main_':
     vis()
