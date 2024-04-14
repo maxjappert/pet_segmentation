@@ -4,7 +4,9 @@ import torch
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks
-from PIL import Image, ImageOps
+from torchvision import tv_tensors
+from torchvision.transforms.v2 import functional as F
+from PIL import Image
 
 def plot(imgs, row_title=None, **imshow_kwargs):
     if not isinstance(imgs[0], list):
