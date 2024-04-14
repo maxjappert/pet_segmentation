@@ -48,7 +48,7 @@ def eval_each_method():
 
         model = SimCLR(out_features=128).to(device)
         model.head = SegmentationHead(in_features=512, output_dim=3)
-        path = 'main_models/finished_model.pth'
+        path = 'finished_model.pth'
         model.load_state_dict(torch.load(path))
         model.eval()
 

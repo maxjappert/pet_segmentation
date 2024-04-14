@@ -3,6 +3,8 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
+from torchvision import tv_tensors
+from torchvision.transforms.v2.functional import to_image, to_dtype
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks
 from torchvision import tv_tensors
 from torchvision.transforms.v2 import functional as F
@@ -29,14 +31,14 @@ def plot(imgs, row_title=None, **imshow_kwargs):
                   boxes = target
                 else:
                     raise ValueError(f"Unexpected target type: {type(target)}")
-            img = F.to_image(img)
+            img = to_image(img)
             if img.dtype.is_floating_point and img.min() < 0:
                 # Poor man's re-normalization for the colors to be OK-ish. This
                 # is useful for images coming out of Normalize()
                 img -= img.min()
                 img /= img.max()
 
-            img = F.to_dtype(img, torch.uint8, scale=True)
+            img = to_dtype(img, torch.uint8, scale=True)
             if boxes is not None:
                 img = draw_bounding_boxes(img, boxes, colors="yellow", width=3)
             if masks is not None:

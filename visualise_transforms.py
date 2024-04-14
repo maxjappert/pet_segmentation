@@ -8,8 +8,8 @@ import torchvision.transforms.functional as F
 from u_datasets import OxfordPetsDataset, read_data
 
 transform = transforms.Compose([
-    transforms.Resize((256, 256)),  # Resize images to 256x256
-    transforms.ToTensor(),  # Convert the PIL Image to a tensor
+    transforms.Resize((256, 256)),
+    transforms.ToTensor(),
 ])
 
 # Define your DataLoader
@@ -22,25 +22,25 @@ dataloader = DataLoader(oxford_test_dataset, batch_size=1, shuffle=True)
 # Transformation pipeline with ToTensor conversion
 elastic_transform = transforms.Compose([
     transforms.Resize((256, 256)),
-    transforms.ElasticTransform(),
-    transforms.ToTensor()  # Converts PIL Image to Tensor
+    transforms.ElasticTransform(alpha=300.0),
+    transforms.ToTensor()
 ])
 
 solarize_transform = transforms.Compose([
     transforms.Resize((256, 256)),
-    transforms.RandomSolarize(threshold=128),
-    transforms.ToTensor()  # Converts PIL Image to Tensor
+    transforms.RandomSolarize(threshold=2, p=1),
+    transforms.ToTensor()
 ])
 
 posterize_transform = transforms.Compose([
     transforms.Resize((256, 256)),
-    transforms.RandomPosterize(bits=2),
-    transforms.ToTensor()  # Converts PIL Image to Tensor
+    transforms.RandomPosterize(bits=2, p=1),
+    transforms.ToTensor()
 ])
 
 simple_transform = transforms.Compose([
     transforms.Resize((256, 256)),
-    transforms.ToTensor()  # Converts PIL Image to Tensor
+    transforms.ToTensor()
 ])
 
 
@@ -69,12 +69,11 @@ for batch in dataloader:
         img = simple_transform(img)
 
         # Add the images to the list for the grid
-        grid_images.extend([img, img_elastic, img_solarize, img_posterize])
+        grid_images = [img, img_elastic, img_solarize, img_posterize]
 
     # Convert the list of tensors to a grid
-    grid = make_grid(grid_images, nrow=batch_size)
+    grid = make_grid(grid_images, nrow=4, padding=0)
 
-    # Convert grid to numpy array and transpose axes to (H, W, C) for plt.imshow
     np_grid = grid.numpy().transpose((1, 2, 0))
 
     # Display the grid
