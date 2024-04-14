@@ -69,7 +69,7 @@ def vis():
 
     model = SimCLR(out_features=128).to(device)
     model.head = SegmentationHead(in_features=512, output_dim=3)
-    model.load_state_dict(torch.load('benchmark.pth', map_location=device))
+    model.load_state_dict(torch.load('finished_model.pth', map_location=device))
     model = model.to(device)
 
     # Update the model's forward method

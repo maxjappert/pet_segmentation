@@ -15,7 +15,8 @@ def load_data_from_pickle(file_path):
         return None
 
 # load the data
-pretrained_loss = load_data_from_pickle('pretraining_loss.pkl') 
+pretrained_loss = load_data_from_pickle('pretraining_train_loss.pkl')
+pretrained_val_loss = load_data_from_pickle('pretraining_val_loss.pkl')
 
 finetuning_train_loss = load_data_from_pickle('finetuning_train_loss.pkl')
 finetuning_train_acc = load_data_from_pickle('finetuning_train_accuracy.pkl')
