@@ -14,10 +14,10 @@ from PIL import Image
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-from .u_models import SimCLR, SegmentationHead
-from .u_eval import evaluate_model
-from .u_datasets import read_data, OxfordPetsDataset
-from .u_transformations import trans_config
+from u_models import SimCLR, SegmentationHead
+from u_eval import evaluate_model
+from u_datasets import read_data, OxfordPetsDataset
+from u_transformations import trans_config
 
 def eval_each_method():
     """
@@ -27,8 +27,9 @@ def eval_each_method():
     model_paths = np.concatenate(
         (['main_models/finished_model',
         'main_models/benchmark_model'],
-        glob.glob('mrp_first_experiment_models/finetuned*'),
-        glob.glob('oeq_models/finetuned*')
+        glob.glob('mrp_first_experiment_models/benchmark*'),
+        # glob.glob('mrp_first_experiment_models/finetuned*'),
+        # glob.glob('oeq_models/finetuned*')
         ))
 
     model_paths = [f.replace('\\', '/') for f in model_paths]
@@ -41,7 +42,7 @@ def eval_each_method():
     results_dict = {}
 
     for file_name in model_paths:
-        t, _ = trans_config(0)
+        t, _, _ = trans_config(0)
         oxford_test_dataset = OxfordPetsDataset('data/oxford', test_data, transform=t)
         oxford_test_dataloader = DataLoader(oxford_test_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
 
