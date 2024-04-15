@@ -75,15 +75,15 @@ def main(train_size):
 
     model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, model_name=f"pretrained_{train_size}",device=device)
 
-    with open(f'smaller/finetuning_train_loss_{train_size}.pkl', 'wb') as f:
+    with open(f'finetuning_train_loss_{train_size}.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
-    with open(f'smaller/finetuning_val_loss_{train_size}.pkl', 'wb') as f:
+    with open(f'finetuning_val_loss_{train_size}.pkl', 'wb') as f:
         pickle.dump(val_loss, f)
 
-    with open(f'smaller/finetuning_train_accuracy_{train_size}.pkl', 'wb') as f:
+    with open(f'finetuning_train_accuracy_{train_size}.pkl', 'wb') as f:
         pickle.dump(train_accuracy, f)
 
-    with open(f'smaller/finetuning_val_accuracy_{train_size}.pkl', 'wb') as f:
+    with open(f'finetuning_val_accuracy_{train_size}.pkl', 'wb') as f:
         pickle.dump(val_accuracy, f)
 
     # Now for the benchmark, whereby we don't pre-train and only finetune
@@ -99,16 +99,16 @@ def main(train_size):
 
     benchmark_model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(benchmark_model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50, model_name=f'benchmark_{train_size}', device=device)
 
-    with open(f'smaller/benchmark_train_loss_{train_size}.pkl', 'wb') as f:
+    with open(f'benchmark_train_loss_{train_size}.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
 
-    with open(f'smaller/benchmark_val_loss_{train_size}.pkl', 'wb') as f:
+    with open(f'benchmark_val_loss_{train_size}.pkl', 'wb') as f:
         pickle.dump(val_loss, f)
 
-    with open(f'smaller/benchmark_train_accuracy_{train_size}.pkl', 'wb') as f:
+    with open(f'benchmark_train_accuracy_{train_size}.pkl', 'wb') as f:
         pickle.dump(train_accuracy, f)
 
-    with open(f'smaller/benchmark_val_accuracy_{train_size}.pkl', 'wb') as f:
+    with open(f'benchmark_val_accuracy_{train_size}.pkl', 'wb') as f:
         pickle.dump(val_accuracy, f)
 
     print('Done!')
