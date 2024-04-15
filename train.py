@@ -63,7 +63,7 @@ def train():
     print('\n##### Begin pre-training #####')
 
     # Perform pre-training
-    model, train_loss, val_loss = pretrain(model, train_loader, None ,optimizer, scheduler, criterion, epochs=50, device=device)
+    model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, device=device)
     with open('pretraining_train_loss.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
 

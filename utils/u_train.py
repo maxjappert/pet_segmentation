@@ -63,14 +63,13 @@ def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, sc
     :return: The pre-trained model and a list of losses per epoch.
     """
 
-    model = model.to(device)
+    model.train()
 
     train_loss_per_epoch = []
-    val_loss_per_epoch = []
 
     for epoch in range(epochs):
         epoch_loss = 0.0
-        model.train()
+        num_batches = 0
         for i, (image1, image2) in enumerate(train_loader):
 
             image1 = image1.to(device)
@@ -87,27 +86,13 @@ def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, sc
             # Print statistics
             epoch_loss += loss.item()
 
-        train_loss_per_epoch.append(epoch_loss / len(train_loader))
-
-        # Validation phase
-        model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for image1, image2 in val_loader:
-                image1, image2 = image1.to(device), image2.to(device)
-                z_i, z_j = model(image1), model(image2)
-                loss = criterion(z_i, z_j)
-                val_loss += loss.item()
-
-        val_loss_per_epoch.append(val_loss / len(val_loader))
+        train_loss_per_epoch.append(epoch_loss)
 
         scheduler.step()
-        print(f'Epoch {epoch + 1}:')
-        print(f'Train loss: {np.round(epoch_loss / len(train_loader), 4)}')
-        print(f'Val loss: {np.round(val_loss / len(val_loader), 4)}')
+        print(f'Epoch {epoch + 1} loss: {np.round(epoch_loss, 4)}')
 
     torch.save(model.state_dict(), f'{model_name}.pth')
-    return model, train_loss_per_epoch, val_loss_per_epoch
+    return model, train_loss_per_epoch
 
 
 def finetune(model: SimCLR, train_dataloader: DataLoader, val_dataloader: DataLoader, criterion: nn.CrossEntropyLoss, optimizer: optim, num_epochs=50, model_name='finished_model', device = 'cpu') -> tuple[SimCLR, list, list, list, list]:
