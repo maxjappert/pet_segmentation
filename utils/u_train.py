@@ -49,7 +49,7 @@ class NTXentLoss(torch.nn.Module):
         loss = self.criterion(sim, labels)
         return loss
 
-def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, scheduler: StepLR, criterion: NTXentLoss, epochs=50, model_name='pretrained_model', device = 'cpu') -> tuple[SimCLR, list]:
+def pretrain(model: SimCLR, train_loader: DataLoader, val_loader: DataLoader, optimizer: torch.optim, scheduler: StepLR, criterion: NTXentLoss, epochs=50, model_name='pretrained_model', device = 'cpu') -> tuple[SimCLR, list, list]:
     """
     Use contrastive learning to pre-train the model.
     :param model: The model to be trained. Make sure that it has the pre-training head attached.
@@ -89,13 +89,25 @@ def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, sc
 
         train_loss_per_epoch.append(epoch_loss / len(train_loader))
 
+        # Validation phase
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for image1, image2 in val_loader:
+                image1, image2 = image1.to(device), image2.to(device)
+                z_i, z_j = model(image1), model(image2)
+                loss = criterion(z_i, z_j)
+                val_loss += loss.item()
+
+        val_loss_per_epoch.append(val_loss / len(val_loader))
+
         scheduler.step()
         print(f'Epoch {epoch + 1}:')
         print(f'Train loss: {np.round(epoch_loss / len(train_loader), 4)}')
-
+        print(f'Val loss: {np.round(val_loss / len(val_loader), 4)}')
 
     torch.save(model.state_dict(), f'{model_name}.pth')
-    return model, train_loss_per_epoch
+    return model, train_loss_per_epoch, val_loss_per_epoch
 
 
 def finetune(model: SimCLR, train_dataloader: DataLoader, val_dataloader: DataLoader, criterion: nn.CrossEntropyLoss, optimizer: optim, num_epochs=50, model_name='finished_model', device = 'cpu') -> tuple[SimCLR, list, list, list, list]:
