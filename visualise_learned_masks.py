@@ -59,7 +59,6 @@ def visualize_segmentation(images, masks, labels, num_images=5):
 # visualize_segmentation(original_images, predicted_masks, num_images=5)
 
 def vis():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     device = torch.device("cpu")
 
     transform = transforms.Compose([
