@@ -1,5 +1,3 @@
-# Test
-
 import os
 import pickle
 import random
@@ -24,14 +22,14 @@ from utils.u_transformations import trans_config
 device_used = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using device: {device_used}')
 
-#print("Current working directory:", os.getcwd())
-
-#smaller_dir = '/tmp/pycharm_project_318/exp'
-#if not os.path.exists(smaller_dir):
-#    os.makedirs(smaller_dir)
-
 
 def train(config_id):
+    """
+    Trains a model using the SimCLR framework, and then fine-tunes the model on the Oxford Pets dataset.
+    Saves to a folder called 'models' in the current directory.
+
+    :param config_id: The configuration ID for the data augmentation transformations.
+    """
     np.set_printoptions(precision=3)
     NUM_PROCS = os.cpu_count() - 2
 
@@ -65,7 +63,7 @@ def train(config_id):
     print('\n##### Begin pre-training #####')
 
     # Perform pre-training
-    model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50,model_name=f"pretrained_model_oeq_{id}", device=device)
+    model, train_loss, val_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50,model_name=f"pretrained_model_oeq_{id}", device=device)
 
     with open(f'pretraining_loss_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(train_loss, f)

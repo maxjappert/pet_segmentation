@@ -49,7 +49,7 @@ class NTXentLoss(torch.nn.Module):
         loss = self.criterion(sim, labels)
         return loss
 
-def pretrain(model: SimCLR, train_loader: DataLoader, val_loader: DataLoader, optimizer: torch.optim, scheduler: StepLR, criterion: NTXentLoss, epochs=50, model_name='pretrained_model', device = 'cpu') -> tuple[SimCLR, list, list]:
+def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, scheduler: StepLR, criterion: NTXentLoss, epochs=50, model_name='pretrained_model', device = 'cpu') -> tuple[SimCLR, list, list]:
     """
     Use contrastive learning to pre-train the model.
     :param model: The model to be trained. Make sure that it has the pre-training head attached.
