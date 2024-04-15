@@ -24,6 +24,7 @@ def eval_each_method():
     Returns:
         results_dict (dict): dictionary with key names model paths and values evlauation results (which are also dictionaries)
     """
+
     model_paths = np.concatenate(
         (['main_models/finished_model',
         'main_models/benchmark_model'],
