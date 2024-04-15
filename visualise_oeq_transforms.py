@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 import torchvision.transforms.functional as F
 
-from u_datasets import OxfordPetsDataset, read_data
+from utils.u_datasets import OxfordPetsDataset, read_data
 
 transform = transforms.Compose([
     transforms.Resize((256, 256)),
