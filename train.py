@@ -50,7 +50,7 @@ def train():
     batch_size = 2048
 
     train_dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=16)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=os.cpu_count()-2)
 
     # Initialize the model and loss function
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -63,8 +63,7 @@ def train():
     print('\n##### Begin pre-training #####')
 
     # Perform pre-training
-    model, train_loss, val_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, device=device)
-
+    model, train_loss, val_loss = pretrain(model, train_loader, None ,optimizer, scheduler, criterion, epochs=50, device=device)
     with open('pretraining_train_loss.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
 
@@ -93,8 +92,8 @@ def train():
     oxford_train_dataset = OxfordPetsDataset('data/oxford', train_data, transform=segmentation_transform)
     oxford_val_dataset = OxfordPetsDataset('data/oxford', val_data, transform=segmentation_transform)
 
-    oxford_train_dataloader = DataLoader(oxford_train_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
-    oxford_val_dataloader = DataLoader(oxford_val_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
+    oxford_train_dataloader = DataLoader(oxford_train_dataset, batch_size=batch_size, shuffle=True, num_workers=os.cpu_count()-2)
+    oxford_val_dataloader = DataLoader(oxford_val_dataset, batch_size=batch_size, shuffle=True, num_workers=os.cpu_count()-2)
 
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
