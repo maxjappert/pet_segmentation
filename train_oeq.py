@@ -22,11 +22,11 @@ from u_transformations import trans_config
 device_used = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using device: {device_used}')
 
-print("Current working directory:", os.getcwd())
+#print("Current working directory:", os.getcwd())
 
-smaller_dir = '/tmp/pycharm_project_318/exp'
-if not os.path.exists(smaller_dir):
-    os.makedirs(smaller_dir)
+#smaller_dir = '/tmp/pycharm_project_318/exp'
+#if not os.path.exists(smaller_dir):
+#    os.makedirs(smaller_dir)
 
 
 def train(config_id):
@@ -65,7 +65,7 @@ def train(config_id):
     # Perform pre-training
     model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50,model_name=f"pretrained_model_oeq_{id}", device=device)
 
-    with open(f'exp/pretraining_loss_oeq_{id}.pkl', 'wb') as f:
+    with open(f'pretraining_loss_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
 
     torch.backends.cudnn.deterministic = True
@@ -106,16 +106,16 @@ def train(config_id):
 
     model, train_loss, val_loss, train_accuracy, val_accuracy = finetune(model, oxford_train_dataloader, oxford_val_dataloader, cross_entropy_loss, optimizer, num_epochs=50,  model_name=f'finetuned_model_oeq_{id}',device=device)
 
-    with open(f'exp/finetuning_train_loss_oeq_{id}.pkl', 'wb') as f:
+    with open(f'finetuning_train_loss_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
 
-    with open(f'exp/finetuning_val_loss_oeq_{id}.pkl', 'wb') as f:
+    with open(f'finetuning_val_loss_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(val_loss, f)
 
-    with open(f'exp/finetuning_train_accuracy_oeq_{id}.pkl', 'wb') as f:
+    with open(f'finetuning_train_accuracy_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(train_accuracy, f)
 
-    with open(f'exp/finetuning_val_accuracy_oeq_{id}.pkl', 'wb') as f:
+    with open(f'finetuning_val_accuracy_oeq_{id}.pkl', 'wb') as f:
         pickle.dump(val_accuracy, f)
 
 
