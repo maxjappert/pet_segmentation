@@ -17,12 +17,6 @@ from utils.u_datasets import read_data, split_data, ContrastiveLearningDataset, 
 from utils.u_models import SegmentationHead, SimCLR
 from utils.u_train import NTXentLoss, pretrain, finetune
 
-#import os
-#print("Current working directory:", os.getcwd())
-
-#smaller_dir = '/tmp/pycharm_project_318/smaller'
-#if not os.path.exists(smaller_dir):
-#    os.makedirs(smaller_dir)
 
 def main(train_size):
     """
