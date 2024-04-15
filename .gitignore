@@ -3,3 +3,4 @@ data/oxford
 adl_files/
 __pychache__
 models/*.pth
+utils/__pychache__
