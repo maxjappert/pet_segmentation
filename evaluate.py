@@ -28,11 +28,6 @@ def eval_each_method():
     """
     model_paths = [os.path.join('new_oeq_baseline_models', file) for file in os.listdir('new_oeq_baseline_models')]
 
-
-    print(model_paths)
-
-    model_paths = [f.replace('\\', '/') for f in model_paths]
-
     test_data = read_data('data/oxford/annotations/test.txt')
     batch_size = 128
 
