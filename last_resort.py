@@ -54,7 +54,7 @@ def main(train_size):
     oxford_train_dataloader = DataLoader(oxford_train_dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_PROCS)
     oxford_val_dataloader = DataLoader(oxford_val_dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_PROCS)
 
-    device = "mps"
+    device = "cuda"
     benchmark_model = SimCLR(out_features=128).to(device)
     benchmark_model.head = SegmentationHead(in_features=512, output_dim=3)
 
