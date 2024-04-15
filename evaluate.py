@@ -26,14 +26,9 @@ def eval_each_method():
     Returns:
         results_dict (dict): dictionary with key names model paths and values evlauation results (which are also dictionaries)
     """
-    model_paths = np.concatenate(
-        (['main_models/finished_model.pth',
-        'main_models/benchmark.pth'],
-        glob.glob('mrp_first_experiment_models/finetuned*'),
-        glob.glob('oeq_models/finetuned*'),
-        # glob.glob('mrp_first_experiment_models/benchmark*')
-        ))
-    
+    model_paths = [os.path.join('new_oeq_baseline_models', file) for file in os.listdir('new_oeq_baseline_models')]
+
+
     print(model_paths)
 
     model_paths = [f.replace('\\', '/') for f in model_paths]
@@ -42,6 +37,7 @@ def eval_each_method():
     batch_size = 128
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = 'mps'
 
     results_dict = {}
     n = len(model_paths)
@@ -57,7 +53,7 @@ def eval_each_method():
         ])
 
         oxford_test_dataset = OxfordPetsDataset('data/oxford', test_data, transform=t)
-        oxford_test_dataloader = DataLoader(oxford_test_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
+        oxford_test_dataloader = DataLoader(oxford_test_dataset, batch_size=batch_size, shuffle=True, num_workers=os.cpu_count()-1)
 
         model = SimCLR(out_features=128).to(device)
         model.head = SegmentationHead(in_features=512, output_dim=3)
@@ -79,6 +75,6 @@ def eval_each_method():
 
 if __name__ == '__main__':
     results = eval_each_method()
-    
+
     with open('results/eval_results_benchmark.pkl', 'wb') as f:
         pickle.dump(results, f)
