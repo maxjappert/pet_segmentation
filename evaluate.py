@@ -32,7 +32,6 @@ def eval_each_method():
     batch_size = 128
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = 'mps'
 
     results_dict = {}
     n = len(model_paths)
