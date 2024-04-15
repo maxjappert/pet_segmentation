@@ -49,7 +49,7 @@ class NTXentLoss(torch.nn.Module):
         loss = self.criterion(sim, labels)
         return loss
 
-def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, scheduler: StepLR, criterion: NTXentLoss, epochs=50, model_name='pretrained_model', device = 'cpu') -> tuple[SimCLR, list, list]:
+def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, scheduler: StepLR, criterion: NTXentLoss, epochs=50, model_name='pretrained_model', device = 'cpu') -> tuple[SimCLR, list]:
     """
     Use contrastive learning to pre-train the model.
     :param model: The model to be trained. Make sure that it has the pre-training head attached.
@@ -63,13 +63,14 @@ def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, sc
     :return: The pre-trained model and a list of losses per epoch.
     """
 
-    model.train()
+    model = model.to(device)
 
     train_loss_per_epoch = []
+    val_loss_per_epoch = []
 
     for epoch in range(epochs):
         epoch_loss = 0.0
-        num_batches = 0
+        model.train()
         for i, (image1, image2) in enumerate(train_loader):
 
             image1 = image1.to(device)
@@ -86,10 +87,12 @@ def pretrain(model: SimCLR, train_loader: DataLoader, optimizer: torch.optim, sc
             # Print statistics
             epoch_loss += loss.item()
 
-        train_loss_per_epoch.append(epoch_loss)
+        train_loss_per_epoch.append(epoch_loss / len(train_loader))
 
         scheduler.step()
-        print(f'Epoch {epoch + 1} loss: {np.round(epoch_loss, 4)}')
+        print(f'Epoch {epoch + 1}:')
+        print(f'Train loss: {np.round(epoch_loss / len(train_loader), 4)}')
+
 
     torch.save(model.state_dict(), f'{model_name}.pth')
     return model, train_loss_per_epoch

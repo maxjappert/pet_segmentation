@@ -59,9 +59,6 @@ def train():
     with open('pretraining_train_loss.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
 
-    with open('pretraining_val_loss.pkl', 'wb') as f:
-        pickle.dump(val_loss, f)
-
     segmentation_transform = transforms.Compose([
         transforms.Resize((256, 256)),  # Resize images to 256x256
         transforms.ToTensor(),  # Convert the PIL Image to a tensor
