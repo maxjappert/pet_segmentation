@@ -26,7 +26,6 @@ print(f'Using device: {device_used}')
 def train(config_id):
     """
     Trains a model using the SimCLR framework, and then fine-tunes the model on the Oxford Pets dataset.
-    Saves to a folder called 'models' in the current directory.
 
     :param config_id: The configuration ID for the data augmentation transformations.
     """

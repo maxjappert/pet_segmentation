@@ -16,6 +16,7 @@ from torch.optim.lr_scheduler import StepLR
 from utils.u_datasets import read_data, split_data, ContrastiveLearningDataset, OxfordPetsDataset
 from utils.u_models import SegmentationHead, SimCLR
 from utils.u_train import NTXentLoss, pretrain, finetune
+from utils.u_transformations import trans_config
 
 np.set_printoptions(precision=3)
 
@@ -31,21 +32,12 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 def train():
-    # Data Augmentation for
-    transform_contrastive_1 = transforms.Compose([
-        transforms.RandomResizedCrop(size=64, scale=(0.5, 1.0)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-
-    transform_contrastive_2 = transforms.Compose([
-        transforms.RandomResizedCrop(size=64),
-        transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),
-        transforms.RandomVerticalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+    """
+    As our initial implementation, trains a model using the SimCLR framework, and then fine-tunes the model on the Oxford Pets dataset.
+    Also trains a ResNet model on the Oxford Pets dataset only.
+    """
+    # Data Augmentation
+    transform_contrastive_1, transform_contrastive_2, id = trans_config(0)
 
     batch_size = 2048
 

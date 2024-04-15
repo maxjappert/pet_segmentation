@@ -25,6 +25,11 @@ from utils.u_train import NTXentLoss, pretrain, finetune
 #    os.makedirs(smaller_dir)
 
 def main(train_size):
+    """
+    Trains a model with and without pretraining.
+
+    :param train_size: The size of the fine-tuning set.
+    """
     np.set_printoptions(precision=3)
 
     # For reproducibility
