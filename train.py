@@ -63,10 +63,13 @@ def train():
     print('\n##### Begin pre-training #####')
 
     # Perform pre-training
-    model, train_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, device=device)
+    model, train_loss, val_loss = pretrain(model, train_loader, optimizer, scheduler, criterion, epochs=50, device=device)
 
-    with open('pretraining_loss.pkl', 'wb') as f:
+    with open('pretraining_train_loss.pkl', 'wb') as f:
         pickle.dump(train_loss, f)
+
+    with open('pretraining_val_loss.pkl', 'wb') as f:
+        pickle.dump(val_loss, f)
 
     segmentation_transform = transforms.Compose([
         transforms.Resize((256, 256)),  # Resize images to 256x256
@@ -74,7 +77,7 @@ def train():
     ])
 
     # Load the pre-trained model
-    #model.load_state_dict(torch.load('pretrained_model.pth', map_location=torch.device('cuda')))
+    model.load_state_dict(torch.load('pretrained_model.pth', map_location=torch.device('cuda')))
 
     # replace the pre-training head with the segmentation head
     model.head = SegmentationHead(in_features=512, output_dim=3)
