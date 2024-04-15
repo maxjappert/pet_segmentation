@@ -5,7 +5,7 @@ import numpy as np
 import torch.nn as nn
 from torch.nn.modules import Identity
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 
 import torch
 import torch.nn.functional as F
@@ -48,8 +48,16 @@ def train(config_id):
 
     batch_size = 2048
 
-    train_dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1, transform2=transform_contrastive_2)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_PROCS)
+    dataset = ContrastiveLearningDataset(root_dir='./data/imagenet64', image_dim=64, transform1=transform_contrastive_1,
+                                         transform2=transform_contrastive_2)
+    dataset_size = len(dataset)  # Total number of examples in the dataset
+    train_size = int(dataset_size * 0.8)
+    val_size = dataset_size - train_size
+    train_data, val_data = random_split(dataset, [train_size, val_size])
+
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=12)
+    val_loader = DataLoader(val_data, batch_size=batch_size,
+                            shuffle=False, num_workers=12)  # Usually, shuffle is False for validation/test loaders
 
     # Initialize the model and loss function
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
