@@ -1,3 +1,5 @@
+import random
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -8,8 +10,20 @@ from torchvision.transforms import transforms
 from utils.u_datasets import read_data, split_data, OxfordPetsDataset
 from utils.u_models import SimCLR, SegmentationHead
 
+np.set_printoptions(precision=3)
 
-def visualize_segmentation(images, masks, labels, num_images=5):
+# For reproducibility
+seed = 48
+torch.manual_seed(seed)
+np.random.seed(seed)
+torch.cuda.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+random.seed(seed)
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+def visualize_segmentation(images, masks, labels, num_images=5, name='pretrained'):
     """
     Visualizes a batch of original images and their corresponding segmentation masks.
 
@@ -51,46 +65,44 @@ def visualize_segmentation(images, masks, labels, num_images=5):
         axs[i, 2].axis('off')
 
     plt.tight_layout()
-    plt.savefig('test.png')
+    plt.savefig(f'masks_{name}.png')
     plt.show()
 
 # Example usage:
 # Assuming ⁠ original_images ⁠ and ⁠ predicted_masks ⁠ are your tensors of images and masks respectively
 # visualize_segmentation(original_images, predicted_masks, num_images=5)
 
-def vis():
+def vis(images, labels, pretrained=True):
     device = torch.device("cpu")
-
-    transform = transforms.Compose([
-        transforms.Resize((256, 256)),  # Resize images to 256x256
-        transforms.ToTensor(),  # Convert the PIL Image to a tensor
-    ])
 
     model = SimCLR(out_features=128).to(device)
     model.head = SegmentationHead(in_features=512, output_dim=3)
-    model.load_state_dict(torch.load('finished_model.pth', map_location=device))
+    model.load_state_dict(torch.load('finished_model.pth' if pretrained else 'benchmark.pth', map_location=device))
     model = model.to(device)
 
     # Update the model's forward method
     model.flatten = False
 
-    data = read_data('data/oxford/annotations/test.txt')
-
-    oxford_test_dataset = OxfordPetsDataset('data/oxford', data, transform=transform)
-
-    num_images = 4
-    oxford_test_dataloader = DataLoader(oxford_test_dataset, batch_size=num_images, shuffle=True, num_workers=4)
-
-    images, labels = next(iter(oxford_test_dataloader))
-    images = images.to(device)
-
     model.eval()
     with torch.no_grad():
         outputs = model(images)
 
-    visualize_segmentation(images.detach().cpu(), outputs.detach().cpu(), labels.detach().cpu(), num_images=num_images)
+    visualize_segmentation(images.detach().cpu(), outputs.detach().cpu(), labels.detach().cpu(), num_images=num_images, name='pretrained' if pretrained else 'benchmark')
 
-vis()
 
-if __name__ == '_main_':
-    vis()
+data = read_data('data/oxford/annotations/test.txt')
+
+transform = transforms.Compose([
+    transforms.Resize((256, 256)),  # Resize images to 256x256
+    transforms.ToTensor(),  # Convert the PIL Image to a tensor
+])
+
+oxford_test_dataset = OxfordPetsDataset('data/oxford', data, transform=transform)
+
+num_images = 4
+oxford_test_dataloader = DataLoader(oxford_test_dataset, batch_size=num_images, shuffle=True)
+
+images, labels = next(iter(oxford_test_dataloader))
+
+vis(images, labels, pretrained=True)
+vis(images, labels, pretrained=False)
