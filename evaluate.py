@@ -80,5 +80,5 @@ def eval_each_method():
 if __name__ == '__main__':
     results = eval_each_method()
     
-    with open('results/eval_results_benchmark.pkl', 'wb') as f:
-        pickle.dump(results, f)
+    # with open('results/eval_results_benchmark.pkl', 'wb') as f:
+    #     pickle.dump(results, f)
